@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8"?>
+<NFSe xmlns="http://www.sped.fazenda.gov.br/nfse" versao="1.01">
+  <infNFSe Id="NFS31062002211222333000181000000000056526102354211157">
+    <xLocEmi>Belo Horizonte</xLocEmi>
+    <xLocPrestacao>Belo Horizonte</xLocPrestacao>
+    <nNFSe>565</nNFSe>
+    <cLocIncid>3106200</cLocIncid>
+    <xLocIncid>Belo Horizonte</xLocIncid>
+    <xTribNac>Licenciamento ou cessão de direito de uso de programas de computação.</xTribNac>
+    <xTribMun>Licenciamento ou cessão de direito de uso de programas de computação</xTribMun>
+    <xNBS>Licenciamento de direitos de uso de programas de computador (software)</xNBS>
+    <verAplic>Exemplo-1</verAplic>
+    <ambGer>2</ambGer>
+    <tpEmis>1</tpEmis>
+    <procEmi>1</procEmi>
+    <cStat>100</cStat>
+    <dhProc>2026-10-20T18:55:01-03:00</dhProc>
+    <nDFSe>1657952</nDFSe>
+    <emit>
+      <CNPJ>11222333000181</CNPJ>
+      <IM>123456</IM>
+      <xNome>Loja Exemplo Ltda</xNome>
+      <enderNac>
+        <xLgr>Rua Exemplo</xLgr>
+        <nro>100</nro>
+        <xBairro>Centro</xBairro>
+        <cMun>3106200</cMun>
+        <UF>MG</UF>
+        <CEP>30140138</CEP>
+      </enderNac>
+    </emit>
+    <valores>
+      <vLiq>1.00</vLiq>
+    </valores>
+    <IBSCBS>
+      <cLocalidadeIncid>3106200</cLocalidadeIncid>
+      <xLocalidadeIncid>Belo Horizonte</xLocalidadeIncid>
+      <valores>
+        <vBC>0.96</vBC>
+        <uf>
+          <pIBSUF>0.10</pIBSUF>
+          <pAliqEfetUF>0.10</pAliqEfetUF>
+        </uf>
+        <mun>
+          <pIBSMun>0.00</pIBSMun>
+          <pAliqEfetMun>0.00</pAliqEfetMun>
+        </mun>
+        <fed>
+          <pCBS>0.90</pCBS>
+          <pAliqEfetCBS>0.90</pAliqEfetCBS>
+        </fed>
+      </valores>
+      <totCIBS>
+        <vTotNF>1.00</vTotNF>
+        <gIBS>
+          <vIBSTot>0.00</vIBSTot>
+          <gIBSUFTot>
+            <vIBSUF>0.00</vIBSUF>
+          </gIBSUFTot>
+          <gIBSMunTot>
+            <vIBSMun>0.00</vIBSMun>
+          </gIBSMunTot>
+        </gIBS>
+        <gCBS>
+          <vCBS>0.01</vCBS>
+        </gCBS>
+      </totCIBS>
+    </IBSCBS>
+    <DPS versao="1.01">
+      <infDPS Id="DPS310620021122233300018100900000000892569028">
+        <tpAmb>2</tpAmb>
+        <dhEmi>2026-10-20T18:54:54-03:00</dhEmi>
+        <verAplic>AcervoApp-1</verAplic>
+        <serie>900</serie>
+        <nDPS>892569028</nDPS>
+        <dCompet>2026-10-20</dCompet>
+        <tpEmit>1</tpEmit>
+        <finNFSe>0</finNFSe>
+        <cLocEmi>3106200</cLocEmi>
+        <prest>
+          <CNPJ>11222333000181</CNPJ>
+          <IM>123456</IM>
+          <regTrib>
+            <opSimpNac>3</opSimpNac>
+            <regApTribSN>1</regApTribSN>
+            <regEspTrib>0</regEspTrib>
+          </regTrib>
+        </prest>
+        <serv>
+          <locPrest>
+            <cLocPrestacao>3106200</cLocPrestacao>
+          </locPrest>
+          <cServ>
+            <cTribNac>990101</cTribNac>
+            <cTribMun>001</cTribMun>
+            <cNBS>111024000</cNBS>
+            <xDescServ>Serviço de exemplo</xDescServ>
+          </cServ>
+        </serv>
+        <valores>
+          <vServPrest>
+            <vServ>1.00</vServ>
+          </vServPrest>
+          <trib>
+            <tribMun>
+              <tribISSQN>4</tribISSQN>
+              <tpRetISSQN>1</tpRetISSQN>
+            </tribMun>
+            <tribFed>
+              <piscofins>
+                <CST>01</CST>
+                <vBCPisCofins>1.00</vBCPisCofins>
+                <pAliqPis>0.65</pAliqPis>
+                <pAliqCofins>3.00</pAliqCofins>
+                <vPis>0.01</vPis>
+                <vCofins>0.03</vCofins>
+                <tpRetPisCofins>2</tpRetPisCofins>
+              </piscofins>
+            </tribFed>
+            <totTrib>
+              <pTotTribSN>6.00</pTotTribSN>
+            </totTrib>
+          </trib>
+        </valores>
+        <IBSCBS>
+          <cIndOp>030101</cIndOp>
+          <indDest>0</indDest>
+          <valores>
+            <trib>
+              <CST>000</CST>
+              <cClassTrib>000001</cClassTrib>
+            </trib>
+          </valores>
+        </IBSCBS>
+      </infDPS>
+    </DPS>
+  </infNFSe>
+</NFSe>
