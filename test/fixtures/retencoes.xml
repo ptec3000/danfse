@@ -30,14 +30,14 @@
       </enderNac>
     </emit>
     <valores>
-      <vLiq>1.00</vLiq>
+      <vCalcDR>2.34</vCalcDR>
+      <tpBM>2</tpBM>
+      <vCalcBM>1.23</vCalcBM>
       <vBC>87.65</vBC>
       <pAliqAplic>2.50</pAliqAplic>
       <vISSQN>2.19</vISSQN>
       <vTotalRet>18.84</vTotalRet>
-      <tpBM>2</tpBM>
-      <vCalcBM>1.23</vCalcBM>
-      <vCalcDR>2.34</vCalcDR>
+      <vLiq>75.61</vLiq>
     </valores>
     <IBSCBS>
       <cLocalidadeIncid>3106200</cLocalidadeIncid>
@@ -62,7 +62,7 @@
         <vCalcReeRepRes>3.45</vCalcReeRepRes>
       </valores>
       <totCIBS>
-        <vTotNF>1.00</vTotNF>
+        <vTotNF>75.62</vTotNF>
         <gIBS>
           <vIBSTot>0.00</vIBSTot>
           <gIBSUFTot>
@@ -110,22 +110,21 @@
         </serv>
         <valores>
           <vServPrest>
-            <vServ>1.00</vServ>
+            <vServ>94.78</vServ>
           </vServPrest>
+          <vDescCondIncond>
+            <vDescIncond>0.11</vDescIncond>
+            <vDescCond>0.22</vDescCond>
+          </vDescCondIncond>
           <trib>
             <tribMun>
               <tribISSQN>1</tribISSQN>
               <tpRetISSQN>2</tpRetISSQN>
-              <tpImunidade>4</tpImunidade>
-              <exigSusp>
-                <tpSusp>1</tpSusp>
-                <nProcesso>PROC-123</nProcesso>
-              </exigSusp>
             </tribMun>
             <tribFed>
               <piscofins>
                 <CST>01</CST>
-                <vBCPisCofins>1.00</vBCPisCofins>
+                <vBCPisCofins>94.78</vBCPisCofins>
                 <pAliqPis>0.65</pAliqPis>
                 <pAliqCofins>3.00</pAliqCofins>
                 <vPis>2.22</vPis>
@@ -140,10 +139,6 @@
               <pTotTribSN>6.00</pTotTribSN>
             </totTrib>
           </trib>
-          <vDescCondIncond>
-            <vDescIncond>0.11</vDescIncond>
-            <vDescCond>0.22</vDescCond>
-          </vDescCondIncond>
         </valores>
         <IBSCBS>
           <cIndOp>030101</cIndOp>

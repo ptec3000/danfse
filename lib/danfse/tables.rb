@@ -3,6 +3,12 @@
 module Danfse
   module Tables
     TABLES = {
+      # TSCodNaoNIF, tiposSimples v1.01 (also v1.00).
+      c_nao_nif: {
+        "0" => "Não informado na nota de origem",
+        "1" => "Dispensado do NIF",
+        "2" => "Não exigência do NIF",
+      }.freeze,
       # TSEmitenteDPS, tiposSimples v1.01.
       tp_emit: {
         "1" => "Prestador",
@@ -87,9 +93,9 @@ module Danfse
       # TBMISSQN, tiposSimples v1.01.
       tp_bm: {
         "1" => "Isenção",
-        "2" => "Redução da BC em 'ppBM' %",
-        "3" => "Redução da BC em R$ 'vInfoBM'",
-        "4" => "Alíquota Diferenciada de 'aliqDifBM' %",
+        "2" => "Redução da BC",
+        "3" => "Redução da BC",
+        "4" => "Alíquota Diferenciada",
       }.freeze,
       # TSAmbGeradorNFSe, tiposSimples v1.01.
       amb_ger: {

@@ -85,6 +85,23 @@
             <regEspTrib>0</regEspTrib>
           </regTrib>
         </prest>
+        <toma>
+          <CNPJ>11444777000161</CNPJ>
+          <IM>654321</IM>
+          <xNome>Cliente Exemplo Ltda</xNome>
+          <end>
+            <endNac>
+              <cMun>3550308</cMun>
+              <CEP>01001000</CEP>
+            </endNac>
+            <xLgr>Rua Modelo</xLgr>
+            <nro>200</nro>
+            <xCpl>Sala 3</xCpl>
+            <xBairro>Centro</xBairro>
+          </end>
+          <fone>3133334444</fone>
+          <email>cliente@example.com</email>
+        </toma>
         <serv>
           <locPrest>
             <cLocPrestacao>3106200</cLocPrestacao>
@@ -131,23 +148,6 @@
             </trib>
           </valores>
         </IBSCBS>
-        <toma>
-          <CNPJ>11444777000161</CNPJ>
-          <IM>654321</IM>
-          <fone>3133334444</fone>
-          <xNome>Cliente Exemplo Ltda</xNome>
-          <end>
-            <endNac>
-              <cMun>3550308</cMun>
-              <CEP>01001000</CEP>
-            </endNac>
-            <xLgr>Rua Modelo</xLgr>
-            <nro>200</nro>
-            <xCpl>Sala 3</xCpl>
-            <xBairro>Centro</xBairro>
-          </end>
-          <email>cliente@example.com</email>
-        </toma>
       </infDPS>
     </DPS>
   </infNFSe>

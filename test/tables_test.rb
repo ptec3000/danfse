@@ -4,6 +4,7 @@ require "nokogiri"
 class TablesTest < Minitest::Test
   XSD_TYPES = {
     tp_emit: "TSEmitenteDPS",
+    c_nao_nif: "TSCodNaoNIF",
     c_stat: "TStat",
     fin_nfse: "TSRTCFinNFSe",
     op_simp_nac: "TSOpSimpNac",
@@ -113,9 +114,9 @@ class TablesTest < Minitest::Test
     assert_equal "Alíquota Diferenciada", Danfse::Tables.descricao(:tp_bm, "1", versao: "1.00")
     assert_equal "Isenção", Danfse::Tables.descricao(:tp_bm, "1", versao: "1.01")
     assert_equal "Redução da BC", Danfse::Tables.descricao(:tp_bm, "2", versao: "1.00")
-    assert_equal "Redução da BC em 'ppBM' %", Danfse::Tables.descricao(:tp_bm, "2", versao: "1.01")
+    assert_equal "Redução da BC", Danfse::Tables.descricao(:tp_bm, "2", versao: "1.01")
     assert_equal "Isenção", Danfse::Tables.descricao(:tp_bm, "3", versao: "1.00")
-    assert_equal "Redução da BC em R$ 'vInfoBM'", Danfse::Tables.descricao(:tp_bm, "3", versao: "1.01")
+    assert_equal "Redução da BC", Danfse::Tables.descricao(:tp_bm, "3", versao: "1.01")
   end
 
   def test_nao_incidencia_issqn_depends_on_layout_version
@@ -181,9 +182,9 @@ class TablesTest < Minitest::Test
   def test_tp_bm_descriptions
     expected = {
       "1" => "Isenção",
-      "2" => "Redução da BC em 'ppBM' %",
-      "3" => "Redução da BC em R$ 'vInfoBM'",
-      "4" => "Alíquota Diferenciada de 'aliqDifBM' %",
+      "2" => "Redução da BC",
+      "3" => "Redução da BC",
+      "4" => "Alíquota Diferenciada",
     }
     expected.each do |code, description|
       assert_equal description, Danfse::Tables.descricao(:tp_bm, code)
@@ -254,5 +255,13 @@ class TablesTest < Minitest::Test
     end
     assert_raises(FrozenError) { Danfse::Tables::TABLES[:tp_emit]["1"] = "Outro" }
     assert_raises(FrozenError) { Danfse::Tables.descricao(:tp_emit, "1").replace("Outro") }
+  end
+  def test_no_nif_descriptions
+    {"0" => "Não informado na nota de origem", "1" => "Dispensado do NIF", "2" => "Não exigência do NIF"}.each do |code, expected|
+      %w[1.00 1.01].each do |version|
+        assert_equal expected, Danfse::Tables.descricao(:c_nao_nif, code, versao: version)
+      end
+    end
+    assert_nil Danfse::Tables.descricao(:c_nao_nif, "9")
   end
 end

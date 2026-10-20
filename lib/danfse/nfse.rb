@@ -17,11 +17,6 @@ module Danfse
     IBS_VALUES = "IBSCBS/valores"
     IBS_TOTALS = "IBSCBS/totCIBS"
     APPROXIMATE_TAXES = "#{DPS}/valores/trib/totTrib"
-    NO_NIF = {
-      "0" => "Não informado na nota de origem",
-      "1" => "Dispensado do NIF",
-      "2" => "Não exigência do NIF",
-    }.freeze
 
     # Paths are relative to infNFSe, including the embedded DPS.
     MONEY_FIELDS = {
@@ -223,13 +218,14 @@ module Danfse
         ["NFS-e Subst.", "#{DPS}/subst/chSubstda"],
         ["Doc. Ref.", "#{DPS}/serv/infoCompl/docRef"],
         ["Cod. Obra", "#{DPS}/serv/obra/cObra"],
-        ["Insc. Imob.", "#{DPS}/IBSCBS/imovel/inscImobFisc"],
-        ["Cod. Evt.", "#{DPS}/serv/atvEvento/idAtvEvt"],
+        ["Insc. Imob.", "#{DPS}/IBSCBS/imovel/inscImobFisc", "#{DPS}/serv/obra/inscImobFisc"],
+        ["Cod. Evt.", "#{DPS}/serv/atvEvento/idAtvEvt", "#{DPS}/serv/atvEvento/id"],
         ["Doc. Tec.", "#{DPS}/serv/infoCompl/idDocTec"],
         ["Núm. Ped.", "#{DPS}/serv/infoCompl/xPed"],
         ["Item Ped.", "#{DPS}/serv/infoCompl/gItemPed/xItemPed"],
       ]
-      items = paths.flat_map do |label, path|
+      items = paths.flat_map do |label, path, alternative|
+        path = alternative if alternative && !text(path)
         @info.xpath(path).filter_map do |node|
           value = text(".", node)
           "#{label}: #{value}" if value
@@ -327,16 +323,17 @@ module Danfse
 
       field = ->(path) { text(path, node) || text(path, fallback) }
       document = Formatters.documento(cnpj: text("CNPJ", node), cpf: text("CPF", node), nif: text("NIF", node))
-      document = display(NO_NIF[text("cNaoNIF", node)]) if document == "-"
-      foreign = node.at_xpath("end/endExt")
-      address_field = ->(tag) { text("end/#{tag}", node) || text("enderNac/#{tag}", fallback) }
+      document = description(:c_nao_nif, text("cNaoNIF", node)) if document == "-"
+      address_node = node.at_xpath("end") || fallback&.at_xpath("enderNac")
+      foreign = address_node&.at_xpath("endExt")
+      address_field = ->(tag) { text(tag, address_node) }
       if foreign
         municipality = join_fields(text("xCidade", foreign), text("xEstProvReg", foreign))
         postal = "- / #{display(text('cEndPost', foreign))}"
-        address_field = ->(tag) { text("end/#{tag}", node) }
       else
-        code = text("end/endNac/cMun", node) || text("enderNac/cMun", fallback)
-        postal_code = text("end/endNac/CEP", node) || text("enderNac/CEP", fallback)
+        national = node.at_xpath("end") ? address_node&.at_xpath("endNac") : address_node
+        code = text("cMun", national)
+        postal_code = text("CEP", national)
         municipality = display(Municipios.nome_uf(code))
         postal = join_fields(code, postal_code && Formatters.cep(postal_code))
       end

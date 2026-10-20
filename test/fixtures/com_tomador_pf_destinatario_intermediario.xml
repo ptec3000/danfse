@@ -86,6 +86,40 @@
             <regEspTrib>0</regEspTrib>
           </regTrib>
         </prest>
+        <toma>
+          <CPF>12345678909</CPF>
+          <IM>654321</IM>
+          <xNome>Pessoa Exemplo</xNome>
+          <end>
+            <endNac>
+              <cMun>3550308</cMun>
+              <CEP>01001000</CEP>
+            </endNac>
+            <xLgr>Rua Modelo</xLgr>
+            <nro>200</nro>
+            <xCpl>Sala 3</xCpl>
+            <xBairro>Centro</xBairro>
+          </end>
+          <fone>3133334444</fone>
+          <email>cliente@example.com</email>
+        </toma>
+        <interm>
+          <CNPJ>12345678000195</CNPJ>
+          <IM>987654</IM>
+          <xNome>Intermediário Exemplo Ltda</xNome>
+          <end>
+            <endNac>
+              <cMun>4106902</cMun>
+              <CEP>80010000</CEP>
+            </endNac>
+            <xLgr>Rua Intermediária</xLgr>
+            <nro>300</nro>
+            <xCpl>Sala 7</xCpl>
+            <xBairro>Bairro Exemplo</xBairro>
+          </end>
+          <fone>4132225555</fone>
+          <email>intermediario@example.com</email>
+        </interm>
         <serv>
           <locPrest>
             <cLocPrestacao>3106200</cLocPrestacao>
@@ -125,16 +159,8 @@
         <IBSCBS>
           <cIndOp>030101</cIndOp>
           <indDest>1</indDest>
-          <valores>
-            <trib>
-              <CST>000</CST>
-              <cClassTrib>000001</cClassTrib>
-            </trib>
-          </valores>
           <dest>
             <CNPJ>11444777000161</CNPJ>
-            <IM>654321</IM>
-            <fone>3133334444</fone>
             <xNome>Destinatário Exemplo Ltda</xNome>
             <end>
               <endNac>
@@ -146,43 +172,16 @@
               <xCpl>Sala 3</xCpl>
               <xBairro>Centro</xBairro>
             </end>
+            <fone>3133334444</fone>
             <email>cliente@example.com</email>
           </dest>
+          <valores>
+            <trib>
+              <CST>000</CST>
+              <cClassTrib>000001</cClassTrib>
+            </trib>
+          </valores>
         </IBSCBS>
-        <toma>
-          <CPF>12345678909</CPF>
-          <IM>654321</IM>
-          <fone>3133334444</fone>
-          <xNome>Pessoa Exemplo</xNome>
-          <end>
-            <endNac>
-              <cMun>3550308</cMun>
-              <CEP>01001000</CEP>
-            </endNac>
-            <xLgr>Rua Modelo</xLgr>
-            <nro>200</nro>
-            <xCpl>Sala 3</xCpl>
-            <xBairro>Centro</xBairro>
-          </end>
-          <email>cliente@example.com</email>
-        </toma>
-        <interm>
-          <CNPJ>11222333000181</CNPJ>
-          <IM>654321</IM>
-          <fone>3133334444</fone>
-          <xNome>Intermediário Exemplo Ltda</xNome>
-          <end>
-            <endNac>
-              <cMun>3550308</cMun>
-              <CEP>01001000</CEP>
-            </endNac>
-            <xLgr>Rua Modelo</xLgr>
-            <nro>200</nro>
-            <xCpl>Sala 3</xCpl>
-            <xBairro>Centro</xBairro>
-          </end>
-          <email>cliente@example.com</email>
-        </interm>
       </infDPS>
     </DPS>
   </infNFSe>

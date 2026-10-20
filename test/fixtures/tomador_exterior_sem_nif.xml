@@ -86,6 +86,21 @@
             <regEspTrib>0</regEspTrib>
           </regTrib>
         </prest>
+        <toma>
+          <cNaoNIF>1</cNaoNIF>
+          <xNome>Foreign Example Company</xNome>
+          <end>
+            <endExt>
+              <cPais>US</cPais>
+              <cEndPost>10001</cEndPost>
+              <xCidade>New York</xCidade>
+              <xEstProvReg>NY</xEstProvReg>
+            </endExt>
+            <xLgr>Example Street</xLgr>
+            <nro>10</nro>
+          </end>
+          <email>foreign@example.com</email>
+        </toma>
         <serv>
           <locPrest>
             <cLocPrestacao>3106200</cLocPrestacao>
@@ -132,21 +147,6 @@
             </trib>
           </valores>
         </IBSCBS>
-        <toma>
-
-          <xNome>Foreign Example Company</xNome>
-          <end>
-            <endExt>
-              <cPais>US</cPais>
-              <cEndPost>10001</cEndPost>
-              <xCidade>New York</xCidade>
-              <xEstProvReg>NY</xEstProvReg>
-            </endExt>
-            <xLgr>Example Street</xLgr>
-            <nro>10</nro>
-          </end>
-          <email>foreign@example.com</email>
-        <cNaoNIF>1</cNaoNIF></toma>
       </infDPS>
     </DPS>
   </infNFSe>

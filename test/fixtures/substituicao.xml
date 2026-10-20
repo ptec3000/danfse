@@ -32,6 +32,7 @@
     <valores>
       <vLiq>1.00</vLiq>
     </valores>
+    <xOutInf>Informação municipal de exemplo</xOutInf>
     <IBSCBS>
       <cLocalidadeIncid>3106200</cLocalidadeIncid>
       <xLocalidadeIncid>Belo Horizonte</xLocalidadeIncid>
@@ -77,6 +78,11 @@
         <tpEmit>1</tpEmit>
         <finNFSe>0</finNFSe>
         <cLocEmi>3106200</cLocEmi>
+        <subst>
+          <chSubstda>31062002112223330001810000000000056426102354211157</chSubstda>
+          <cMotivo>99</cMotivo>
+          <xMotivo>Correção dos dados do serviço de exemplo</xMotivo>
+        </subst>
         <prest>
           <CNPJ>11222333000181</CNPJ>
           <IM>123456</IM>
@@ -96,21 +102,24 @@
             <cNBS>111032200</cNBS>
             <xDescServ>Serviço de exemplo</xDescServ>
           </cServ>
-          <infoCompl>
-            <xInfComp>Contrato de exemplo</xInfComp>
-            <docRef>DOC-123</docRef>
-            <idDocTec>TEC-123</idDocTec>
-            <xPed>PED-123</xPed>
-            <gItemPed>
-              <xItemPed>Item de exemplo</xItemPed>
-            </gItemPed>
-          </infoCompl>
           <obra>
             <cObra>OBRA-123</cObra>
           </obra>
           <atvEvento>
+            <xNome>Evento de exemplo</xNome>
+            <dtIni>2026-10-20</dtIni>
+            <dtFim>2026-10-21</dtFim>
             <idAtvEvt>EVENTO-123</idAtvEvt>
           </atvEvento>
+          <infoCompl>
+            <idDocTec>TEC-123</idDocTec>
+            <docRef>DOC-123</docRef>
+            <xPed>PED-123</xPed>
+            <gItemPed>
+              <xItemPed>Item de exemplo</xItemPed>
+            </gItemPed>
+            <xInfComp>Contrato de exemplo</xInfComp>
+          </infoCompl>
         </serv>
         <valores>
           <vServPrest>
@@ -140,21 +149,18 @@
         <IBSCBS>
           <cIndOp>030101</cIndOp>
           <indDest>0</indDest>
+          <imovel>
+            <inscImobFisc>IMOVEL-123</inscImobFisc>
+            <cCIB>12345678</cCIB>
+          </imovel>
           <valores>
             <trib>
               <CST>000</CST>
               <cClassTrib>000001</cClassTrib>
             </trib>
           </valores>
-          <imovel>
-            <inscImobFisc>IMOVEL-123</inscImobFisc>
-          </imovel>
         </IBSCBS>
-        <subst>
-          <chSubstda>31062002112223330001810000000000056426102354211157</chSubstda>
-        </subst>
       </infDPS>
     </DPS>
-    <xOutInf>Informação municipal de exemplo</xOutInf>
   </infNFSe>
 </NFSe>
