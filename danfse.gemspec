@@ -14,5 +14,6 @@ Gem::Specification.new do |spec|
   spec.add_dependency "prawn", "~> 2.5"
   spec.add_dependency "rqrcode", "~> 3.0"
   spec.add_dependency "nokogiri", "~> 1.16"
+  spec.add_dependency "csv"
   spec.add_dependency "bigdecimal"
 end

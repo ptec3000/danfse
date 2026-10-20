@@ -1,0 +1,29 @@
+#!/usr/bin/env ruby
+
+require "csv"
+require "fileutils"
+require "json"
+require "net/http"
+require "uri"
+
+url = URI("https://servicodados.ibge.gov.br/api/v1/localidades/municipios")
+response = Net::HTTP.start(url.hostname, url.port, use_ssl: true, open_timeout: 15, read_timeout: 60) do |http|
+  http.get(url.request_uri)
+end
+response.value
+municipalities = JSON.parse(response.body).sort_by { |municipality| municipality.fetch("id") }
+rows = municipalities.map do |municipality|
+  state = municipality.dig("microrregiao", "mesorregiao", "UF", "sigla") ||
+    municipality.dig("regiao-imediata", "regiao-intermediaria", "UF", "sigla")
+  raise "UF ausente para o município #{municipality.fetch('id')}" unless state
+
+  [municipality.fetch("id"), municipality.fetch("nome"), state]
+end
+
+path = File.expand_path("../data/municipios.csv", __dir__)
+FileUtils.mkdir_p(File.dirname(path))
+CSV.open(path, "w:UTF-8") do |csv|
+  csv << %w[codigo nome uf]
+  rows.each { |row| csv << row }
+end
+puts "#{rows.length} municípios gravados em #{path}"
