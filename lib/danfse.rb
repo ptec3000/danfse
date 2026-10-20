@@ -11,3 +11,5 @@ module Danfse
 end
 
 require_relative "danfse/municipios"
+require_relative "danfse/formatters"
+require_relative "danfse/tables"
