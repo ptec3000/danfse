@@ -1,0 +1,3 @@
+module Danfse
+  VERSION = "0.1.0"
+end

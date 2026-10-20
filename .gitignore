@@ -1,0 +1,6 @@
+/pkg/
+/tmp/
+Gemfile.lock
+.bundle/
+.superpowers/
+/vendor/
