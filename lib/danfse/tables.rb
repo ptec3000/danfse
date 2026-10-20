@@ -103,11 +103,41 @@ module Danfse
       }.freeze,
     }.freeze
 
-    def self.descricao(field, code)
+    OVERRIDES = {
+      "1.00" => {
+        # TSTribISSQN, tiposSimples v1.00.
+        trib_issqn: {
+          "1" => "Operação tributável",
+          "2" => "Exportação de serviço",
+          "3" => "Não Incidência",
+          "4" => "Imunidade",
+        }.freeze,
+        # TSOpTipoBM, tiposSimples v1.00.
+        tp_bm: {
+          "1" => "Alíquota Diferenciada",
+          "2" => "Redução da BC",
+          "3" => "Isenção",
+        }.freeze,
+      }.freeze,
+    }.freeze
+
+    RAW_WHEN_UNKNOWN = %i[c_stat tp_bm].freeze
+
+    def self.descricao(field, code, versao: "1.01")
       return nil if code.nil?
 
       value = code.to_s
-      TABLES[field]&.[](value) || (value if field == :c_stat || field == :tp_bm)
+      return nil if value.strip.empty?
+
+      table = OVERRIDES.dig(versao.to_s, field) || TABLES[field]
+      table&.[](value) || (value if RAW_WHEN_UNKNOWN.include?(field))
+    end
+
+    def self.nao_incidencia_issqn?(code, versao: "1.01")
+      return false if code.nil?
+
+      expected_code = versao.to_s == "1.00" ? "3" : "4"
+      code.to_s == expected_code
     end
   end
 end

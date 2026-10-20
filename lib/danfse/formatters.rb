@@ -74,7 +74,9 @@ module Danfse
     private_class_method :missing?
 
     def decimal_string(value, thousands: false)
-      integer, fraction = BigDecimal(value.to_s).round(2, BigDecimal::ROUND_HALF_UP).to_s("F").split(".", 2)
+      rounded = BigDecimal(value.to_s).round(2, BigDecimal::ROUND_HALF_UP)
+      rounded = rounded.abs if rounded.zero?
+      integer, fraction = rounded.to_s("F").split(".", 2)
       integer = integer.gsub(/(\d)(?=(\d{3})+(?!\d))/, '\1.') if thousands
       "#{integer},#{fraction.ljust(2, '0')}"
     end

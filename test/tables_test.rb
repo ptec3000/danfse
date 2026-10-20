@@ -1,6 +1,24 @@
 require "test_helper"
+require "nokogiri"
 
 class TablesTest < Minitest::Test
+  XSD_TYPES = {
+    tp_emit: "TSEmitenteDPS",
+    c_stat: "TStat",
+    fin_nfse: "TSRTCFinNFSe",
+    op_simp_nac: "TSOpSimpNac",
+    reg_ap_trib_sn: "TSRegimeApuracaoSimpNac",
+    reg_esp_trib: "TSRegEspTrib",
+    trib_issqn: "TSTribISSQN",
+    tp_imunidade: "TSTipoImunidadeISSQN",
+    tp_susp: "TSOpExigSuspensa",
+    tp_ret_issqn: "TSTipoRetISSQN",
+    tp_ret_pis_cofins: "TSTipoRetPISCofins",
+    tp_bm: "TBMISSQN",
+    amb_ger: "TSAmbGeradorNFSe",
+    tp_amb: "TSTipoAmbiente",
+  }.freeze
+
   def test_tp_emit_descriptions
     expected = {
       "1" => "Prestador",
@@ -82,6 +100,29 @@ class TablesTest < Minitest::Test
     expected.each do |code, description|
       assert_equal description, Danfse::Tables.descricao(:trib_issqn, code)
     end
+  end
+
+  def test_version_specific_descriptions
+    assert_equal "Exportação de serviço", Danfse::Tables.descricao(:trib_issqn, "2", versao: "1.00")
+    assert_equal "Imunidade", Danfse::Tables.descricao(:trib_issqn, "2", versao: "1.01")
+    assert_equal "Não Incidência", Danfse::Tables.descricao(:trib_issqn, "3", versao: "1.00")
+    assert_equal "Exportação de serviço", Danfse::Tables.descricao(:trib_issqn, "3", versao: "1.01")
+    assert_equal "Imunidade", Danfse::Tables.descricao(:trib_issqn, "4", versao: "1.00")
+    assert_equal "Não Incidência", Danfse::Tables.descricao(:trib_issqn, "4", versao: "1.01")
+
+    assert_equal "Alíquota Diferenciada", Danfse::Tables.descricao(:tp_bm, "1", versao: "1.00")
+    assert_equal "Isenção", Danfse::Tables.descricao(:tp_bm, "1", versao: "1.01")
+    assert_equal "Redução da BC", Danfse::Tables.descricao(:tp_bm, "2", versao: "1.00")
+    assert_equal "Redução da BC em 'ppBM' %", Danfse::Tables.descricao(:tp_bm, "2", versao: "1.01")
+    assert_equal "Isenção", Danfse::Tables.descricao(:tp_bm, "3", versao: "1.00")
+    assert_equal "Redução da BC em R$ 'vInfoBM'", Danfse::Tables.descricao(:tp_bm, "3", versao: "1.01")
+  end
+
+  def test_nao_incidencia_issqn_depends_on_layout_version
+    assert Danfse::Tables.nao_incidencia_issqn?("4")
+    refute Danfse::Tables.nao_incidencia_issqn?("3")
+    assert Danfse::Tables.nao_incidencia_issqn?("3", versao: "1.00")
+    refute Danfse::Tables.nao_incidencia_issqn?("4", versao: "1.00")
   end
 
   def test_tp_imunidade_descriptions
@@ -176,6 +217,33 @@ class TablesTest < Minitest::Test
     assert_nil Danfse::Tables.descricao(:unknown, "1")
     assert_nil Danfse::Tables.descricao(:c_stat, nil)
     assert_nil Danfse::Tables.descricao(:tp_bm, nil)
+  end
+
+  def test_blank_codes_are_missing_for_every_field
+    ["", " \t\n"].each do |code|
+      Danfse::Tables::TABLES.each_key do |field|
+        assert_nil Danfse::Tables.descricao(field, code)
+      end
+    end
+  end
+
+  def test_tables_include_every_code_from_the_101_schema
+    tables = Danfse::Tables::TABLES
+    assert_equal tables.keys.sort, XSD_TYPES.keys.sort
+
+    schema_path = Danfse::ROOT.join("docs/schemas/1.01/tiposSimples_v1.01.xsd")
+    schema = Nokogiri::XML(File.read(schema_path))
+    namespaces = { "xs" => "http://www.w3.org/2001/XMLSchema" }
+
+    XSD_TYPES.each do |field, type_name|
+      type = schema.at_xpath("//xs:simpleType[@name='#{type_name}']", namespaces)
+      refute_nil type, "missing XSD type #{type_name} for #{field}"
+
+      codes = type.xpath(".//xs:enumeration/@value", namespaces).map { |attribute| attribute.value }
+      codes.each do |code|
+        assert_includes tables.fetch(field).keys, code, "#{field} is missing schema code #{code}"
+      end
+    end
   end
 
   def test_tables_cannot_be_mutated

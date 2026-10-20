@@ -14,6 +14,7 @@ class FormattersTest < Minitest::Test
     assert_equal "R$ 1.234,50", Danfse::Formatters.moeda("1234.5")
     assert_equal "R$ 0,01", Danfse::Formatters.moeda("0.01")
     assert_equal "R$ 0,00", Danfse::Formatters.moeda("0")
+    assert_equal "R$ 0,00", Danfse::Formatters.moeda("-0.001")
     assert_equal "R$ -1.234,57", Danfse::Formatters.moeda("-1234.565")
     assert_equal "R$ 10.000.000.000.000.000,01", Danfse::Formatters.moeda("10000000000000000.01")
     assert_equal "R$ 1,01", Danfse::Formatters.moeda("1.005")
@@ -23,6 +24,7 @@ class FormattersTest < Minitest::Test
     assert_equal "0,65%", Danfse::Formatters.percentual("0.65")
     assert_equal "2,00%", Danfse::Formatters.percentual("2")
     assert_equal "0,00%", Danfse::Formatters.percentual("0")
+    assert_equal "0,00%", Danfse::Formatters.percentual("-0.001")
     assert_equal "1,01%", Danfse::Formatters.percentual("1.005")
   end
 
