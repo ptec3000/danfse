@@ -315,26 +315,23 @@ module Danfse
     # The mandatory approximate-tax line is separate and is never truncated.
     def limit_complementary_items(items, suffix)
       complete = suffix ? items + [suffix] : items
-      return complete if complete.join(" | ").length <= 1997
+      return complete if complete.join(" | ").length <= 2000
 
-      remaining = 1997 - (suffix ? suffix.length + 3 : 0)
-      result = []
-      items.each do |item|
-        separator = result.empty? ? 0 : 3
-        if item.length + separator <= remaining
-          result << item
-          remaining -= item.length + separator
-        else
-          if remaining > separator
-            result << Formatters.truncar(item, remaining - separator)
-          else
-            result[-1] += "..."
-          end
-          break
-        end
+      # Identifiers are mandatory; only free text can give up space.
+      free = items.select { |item| item.start_with?("Inf. Cont.: ", "Inf. A. T. Mun.: ") }
+      fixed = items - free
+      reserved = suffix ? fixed + [suffix] : fixed
+      available = 2000 - reserved.join(" | ").length - (reserved.empty? ? 0 : 3)
+      replacements = {}
+      free.each do |item|
+        next if available <= 3
+
+        length = [item.length, available - 3].min
+        shortened = item.length > length ? Formatters.truncar(item, length) : item
+        replacements[item] = shortened
+        available -= shortened.length + 3
       end
-      result << suffix if suffix
-      result
+      fixed + free.filter_map { |item| replacements[item] } + (suffix ? [suffix] : [])
     end
 
     # v1.01 enumerates each retained tax; v1.00 codes 1/2 keep their meaning.

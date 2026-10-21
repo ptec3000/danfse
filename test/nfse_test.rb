@@ -2,6 +2,8 @@
 
 require "test_helper"
 require "nokogiri"
+require "pdf-reader"
+require "stringio"
 
 class NfseTest < Minitest::Test
   def real = Danfse::Nfse.new(fixture("real/acervo_homologacao_rtc.xml"))
@@ -402,6 +404,30 @@ class NfseTest < Minitest::Test
     end
   end
 
+  def test_long_free_text_keeps_complementary_identifiers
+    n = changed("substituicao") { |doc| doc.at_xpath("//xInfComp").content = "á" * 2300 }
+    items = n.informacoes_complementares
+    assert_equal 2000, items.join(" | ").length
+    assert items.any? { |item| item.start_with?("Inf. Cont.: ") && item.end_with?("...") }
+    ["NFS-e Subst.:", "Doc. Ref.:", "Cod. Obra:", "Insc. Imob.:", "Cod. Evt.:", "Doc. Tec.:", "Núm. Ped.:", "Item Ped.:"].each do |label|
+      assert items.any? { |item| item.start_with?(label) }, label
+    end
+  end
+
+  def test_long_free_text_keeps_identifiers_in_rendered_pdf
+    xml = Nokogiri::XML(fixture("substituicao.xml"))
+    xml.remove_namespaces!
+    xml.at_xpath("//xInfComp").content = "á" * 2300
+    pdf = PDF::Reader.new(StringIO.new(Danfse.render(xml.to_xml)))
+    rendered = pdf.pages.map(&:text).join(" ")
+    assert_includes rendered, "31062002112223330001810000000000056426102354211157"
+    assert_includes rendered, "DOC-123"
+    assert_includes rendered, "OBRA-123"
+    assert_includes rendered, "IMOVEL-123"
+    assert_includes rendered, "EVENTO-123"
+    assert_includes rendered, "PED-123"
+  end
+
   def test_invalid_xml_missing_or_blank_id_and_malformed_document
     ["<NFSe><infNFSe/></NFSe>", "<NFSe><infNFSe Id=\"  \"/></NFSe>", "<NFSe><infNFSe Id=\"NFS123\"></NFSe>"].each do |xml|
       assert_raises(Danfse::InvalidXml) { Danfse::Nfse.new(xml) }
@@ -481,8 +507,7 @@ class NfseTest < Minitest::Test
     n = changed("substituicao") { |doc| doc.at_xpath("//xInfComp").content = "á" * 2100 }
     items = n.informacoes_complementares
     assert_equal 2000, items.join(" | ").length
-    assert items.first.start_with?("Inf. Cont.: ")
-    assert items.first.end_with?("...")
+    assert items.any? { |item| item.start_with?("Inf. Cont.: ") && item.end_with?("...") }
     assert_equal "Total Simples Nacional: 6,00%", items.last
     assert_equal "Totais Aproximados dos Tributos cfe. Lei nº 12.741/2012: Federais: -; Estaduais: -; Municipais: -", n.totais_tributos
     n = changed("substituicao") do |doc|
