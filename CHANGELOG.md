@@ -1,6 +1,6 @@
 # Changelog
 
-## Não lançado
+## 0.1.2
 
 - Passa a exigir Ruby 3.4 ou superior (CI em 3.4 e 4.0).
 

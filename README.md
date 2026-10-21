@@ -27,7 +27,7 @@ Desde agosto de 2026 a Sefin não gera mais o PDF da nota pela API (NT 008/2026)
 Requer Ruby 3.4 ou superior. No Gemfile:
 
 ```ruby
-gem "danfse", github: "ptec3000/danfse", tag: "v0.1.1"
+gem "danfse", github: "ptec3000/danfse", tag: "v0.1.2"
 ```
 
 Depois, `bundle install` e:
