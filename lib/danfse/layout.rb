@@ -188,7 +188,7 @@ module Danfse
     TOTALS = rows({
       title: field("VALOR TOTAL DA NFS-E", 0.30, 20.90, 5.09, 0.67),
       valor_servico: field("VALOR DA OPERAÇÃO / SERVIÇO", 5.41, 20.90, 5.09, 0.67),
-      desconto_incondicionado_total: field("Desconto Incondicionado", 10.51, 20.90, 5.09, 0.67),
+      desconto_incondicionado: field("Desconto Incondicionado", 10.51, 20.90, 5.09, 0.67),
       desconto_condicionado: field("Desconto Condicionado", 15.62, 20.90, 5.09, 0.67),
       total_retencoes: field("Total das Retenções (ISSQN / Federais)", 0.30, 21.59, 5.09, 0.67),
       valor_liquido: field("VALOR LÍQUIDO DA NFS-e", 5.41, 21.59, 5.09, 0.67),

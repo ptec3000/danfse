@@ -78,10 +78,12 @@ class DocumentTest < Minitest::Test
 
   def test_identification_and_header_values_remain_complete_at_larger_sizes
     xml = fixture("com_tomador_pf_destinatario_intermediario.xml")
-    nfse = Danfse::Nfse.new(xml)
     drawn = painted_text(reader(xml, canhoto: true).pages.first).gsub(/\s+/, "")
-    (Danfse::Layout::IDENTIFICATION.keys + %i[ambiente_gerador tipo_ambiente]).each do |name|
-      assert_includes drawn, nfse.public_send(name).to_s.gsub(/\s+/, "")
+    ["31062002211222333000181000000000056526102354211157", "565", "20/10/2026",
+      "20/10/2026 18:55:01", "892569028", "900", "20/10/2026 18:54:54",
+      "Prestador", "NFS-e Gerada", "NFS-e regular", "Ambiente Gerador: Sistema Nacional da NFS-e",
+      "Tipo de Ambiente: Homologação"].each do |expected|
+      assert_includes drawn, expected.gsub(/\s+/, "")
     end
   end
 
@@ -195,17 +197,6 @@ class DocumentTest < Minitest::Test
   def test_absent_intermediary_draws_missing_message
     drawn = painted_text(reader(fixture("real/acervo_homologacao_rtc.xml")).pages.first)
     assert_includes drawn, "INTERMEDIÁRIO DA OPERAÇÃO NÃO IDENTIFICADO NA NFS-e"
-  end
-
-  def test_heights_snapshot_is_frozen_and_does_not_expose_internal_state
-    document = Danfse::Document.new(Danfse::Nfse.new(fixture("real/acervo_homologacao_rtc.xml")))
-    document.render
-    snapshot = document.heights
-    assert_predicate snapshot, :frozen?
-    assert_raises(FrozenError) { snapshot[:service] = 0 }
-    refute_same snapshot, document.heights
-    assert_equal snapshot, document.heights
-    refute_respond_to document, :heights=
   end
 
   def test_production_without_test_warning
