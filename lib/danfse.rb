@@ -15,3 +15,17 @@ require_relative "danfse/formatters"
 require_relative "danfse/tables"
 
 require_relative "danfse/nfse"
+
+require_relative "danfse/layout"
+require_relative "danfse/document"
+
+module Danfse
+  def self.render(xml, situacao: :normal, canhoto: false, fonts: nil)
+    Document.new(Nfse.new(xml), situacao: situacao, canhoto: canhoto, fonts: fonts).render
+  end
+
+  def self.render_file(xml_path, pdf_path, **options)
+    File.binwrite(pdf_path, render(File.read(xml_path), **options))
+    pdf_path
+  end
+end
