@@ -100,22 +100,26 @@ module Danfse
       text_options = text_options(field, size: size, single_line: true,
         overflow: :shrink_to_fit, min_font_size: min_font_size, **options)
       remainder = Prawn::Text::Box.new(source, text_options.merge(document: @pdf)).render(dry_run: true)
-      source = ellipsized_line(source, text_options, min_font_size) unless remainder.empty?
+      source = ellipsized_text(source, text_options.merge(size: min_font_size, overflow: :truncate)) unless remainder.empty?
       @pdf.text_box(source, text_options)
     end
 
-    def ellipsized_line(source, options, min_font_size)
-      visible = source
-      fit_options = options.merge(size: min_font_size, overflow: :truncate)
-      loop do
-        suffix = visible.rstrip.end_with?("...") ? "" : "..."
-        candidate = "#{visible.rstrip}#{suffix}"
-        remainder = Prawn::Text::Box.new(candidate, fit_options.merge(document: @pdf)).render(dry_run: true)
-        return candidate if remainder.empty?
-
-        visible = visible[0...-1]
-        raise Error, "Fonte grande demais para o quadro de texto." if visible.empty?
+    def ellipsized_text(source, options)
+      low = 0
+      high = source.length
+      best = nil
+      while low <= high
+        middle = (low + high) / 2
+        candidate = "#{source[0, middle].rstrip}..."
+        remainder = Prawn::Text::Box.new(candidate, options.merge(document: @pdf)).render(dry_run: true)
+        if remainder.empty?
+          best = candidate
+          low = middle + 1
+        else
+          high = middle - 1
+        end
       end
+      best || raise(Error, "Fonte grande demais para o quadro de texto.")
     end
 
     def measured_height(text, width)
@@ -275,26 +279,11 @@ module Danfse
       box(label, field, size: Layout::COLLAPSED_SIZE, align: :center, valign: :center, vertical_inset: 0)
     end
 
-    # Probe the same Prawn box used for painting. Its returned remainder detects
-    # actual overflow; reflow the visible prefix with an explicit final ellipsis.
-    # Dry-running first avoids duplicate text or erasing the opaque watermark.
     def long_box(text, field)
       source = safe(text)
       options = text_options(field)
       remainder = Prawn::Text::Box.new(source, options.merge(document: @pdf)).render(dry_run: true)
-      unless remainder.empty?
-        visible = source[0, source.length - remainder.length].rstrip
-        loop do
-          candidate = "#{visible.rstrip}..."
-          rest = Prawn::Text::Box.new(candidate, options.merge(document: @pdf)).render(dry_run: true)
-          if rest.empty?
-            source = candidate
-            break
-          end
-          visible = visible[0...-1]
-          raise Error, "Fonte grande demais para o quadro de texto." if visible.empty?
-        end
-      end
+      source = ellipsized_text(source, options) unless remainder.empty?
       @pdf.text_box(source, options)
     end
 
@@ -308,8 +297,11 @@ module Danfse
           box(field[:label], field.merge(h: Layout::LABEL_HEIGHT), size: Layout::SERVICE_LABEL_SIZE, style: :bold)
           long_box(@nfse.descricao_servico, field.merge(y: field[:y] + Layout::LABEL_HEIGHT, h: field[:h] - Layout::LABEL_HEIGHT))
         else
-          draw_field(field, name == :title ? nil : @nfse.public_send(name), title: name == :title,
-            single_line: name != :descricao_tributacao)
+          if name == :descricao_tributacao
+            long_box(@nfse.descricao_tributacao, field)
+          else
+            draw_field(field, name == :title ? nil : @nfse.public_send(name), title: name == :title)
+          end
         end
       end
       @y += @heights[:service]

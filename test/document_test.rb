@@ -131,6 +131,29 @@ class DocumentTest < Minitest::Test
     assert_equal 3, header_runs.map(&:y).uniq.size
   end
 
+  def test_municipal_tax_description_has_visible_ellipsis_when_its_box_overflows
+    description = "Descrição do código nacional para consultoria tecnológica e assistência especializada em planejamento e desenvolvimento contínuo de serviços digitais completos"
+    xml = fixture("real/acervo_homologacao_rtc.xml").sub(
+      /<xTribMun>.*?<\/xTribMun>/, "<xTribMun>#{description}</xTribMun>")
+    drawn = painted_text(reader(xml).pages.first)
+
+    assert_includes drawn, "Descrição do código nacional"
+    assert_match(/Descrição do código nacional[^\n]*\.\.\./, drawn)
+    refute_includes drawn, "digitais completos"
+  end
+
+  def test_very_long_provider_email_renders_within_two_seconds
+    email = "contato" + ("abc" * 3_300) + "@example.com"
+    xml = fixture("com_tomador_pf_destinatario_intermediario.xml").sub(
+      "</prest>", "<email>#{email}</email></prest>")
+    started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    page = reader(xml).pages.first
+    elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - started
+
+    assert_operator elapsed, :<, 2
+    assert_match(/contato[abc]+\.\.\./, painted_text(page))
+  end
+
   def test_a4_single_page
     r = reader(fixture("real/acervo_homologacao_rtc.xml"))
     assert_equal 1, r.page_count
