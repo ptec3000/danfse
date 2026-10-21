@@ -1,8 +1,28 @@
 # danfse
 
-Gera o PDF do DANFSe a partir do XML autorizado da NFS-e Nacional, conforme a NT 008 v1.02. Não emite notas nem consulta a situação delas no portal nacional.
+[![CI](https://github.com/ptec3000/danfse/actions/workflows/ci.yml/badge.svg)](https://github.com/ptec3000/danfse/actions/workflows/ci.yml)
 
-## Instalação
+**Gera o PDF do DANFSe a partir do XML autorizado da NFS-e Nacional**, no modelo da NT 008/2026 v1.02.
+
+Desde agosto de 2026 a Sefin não gera mais o PDF da nota pela API (NT 008/2026): cada emissor precisa gerar o seu a partir do XML. Esta gem faz exatamente isso, em Ruby puro, sem rede e sem programas externos. Ela não emite nota nem consulta a situação da nota no portal nacional: entra o XML, sai o PDF.
+
+> 🎲 **Testada em produção.** Gera os PDFs das notas fiscais emitidas pela [Acervo de Jogos](https://www.acervodejogos.com.br), plataforma para aluguel de jogos de tabuleiro, para as lojas e os clientes delas.
+
+<p align="center">
+  <img src="docs/exemplo.png" alt="DANFSe gerado pela gem a partir de uma nota de exemplo" width="560">
+</p>
+
+## O que ela cobre
+
+- Leiautes **1.00 e 1.01** da NFS-e Nacional, incluindo o grupo **IBS/CBS** da reforma tributária.
+- Prestador, tomador, destinatário e intermediário, inclusive **no exterior** (com ou sem NIF).
+- Retenções de ISSQN e federais, Simples Nacional, MEI, não incidência e imunidade, com as frases da NT para os blocos vazios.
+- **QR code** da consulta pública, chave de acesso e ambiente (homologação sai com "NFS-e SEM VALIDADE JURÍDICA").
+- Marca d'água de nota **CANCELADA** ou **SUBSTITUÍDA** e canhoto de recebimento opcional.
+- Textos longos cortados com "..." sem perder os dados obrigatórios; o PDF sempre cabe em uma página.
+- Linha de comando para gerar o PDF de um arquivo.
+
+## Começo rápido
 
 Requer Ruby 3.2 ou superior. No Gemfile:
 
@@ -10,31 +30,40 @@ Requer Ruby 3.2 ou superior. No Gemfile:
 gem "danfse", github: "ptec3000/danfse", tag: "v0.1.1"
 ```
 
-Execute `bundle install`.
-
-## Uso em Ruby
+Depois, `bundle install` e:
 
 ```ruby
 require "danfse"
 
-xml = File.read("nota.xml")
-pdf = Danfse.render(xml) # String binária com o PDF
+pdf = Danfse.render(File.read("nota.xml")) # String binária com o PDF
 File.binwrite("nota.pdf", pdf)
-
-Danfse.render_file("nota.xml", "nota.pdf", situacao: :cancelada, canhoto: true)
-# => "nota.pdf"
 ```
 
-As opções são `situacao: :normal`, `canhoto: false` e `fonts: nil`. `situacao:` aceita `:normal`, `:cancelada` e `:substituida`; outro valor gera `ArgumentError`. Qualquer entrada XML inválida gera `Danfse::InvalidXml`, que herda de `Danfse::Error`.
-
-Em Rails, supondo um modelo `Nota` com os anexos Active Storage `xml` e `danfse`, um job pode gerar o PDF a partir do XML guardado:
+## Uso
 
 ```ruby
-class GerarDanfseJob < ApplicationJob
-  def perform(nota_id)
-    nota = Nota.find(nota_id)
-    pdf = Danfse.render(nota.xml.download)
-    nota.danfse.attach(io: StringIO.new(pdf), filename: "danfse.pdf", content_type: "application/pdf")
+Danfse.render(xml)                                  # nota normal
+Danfse.render(xml, situacao: :cancelada)            # marca d'água CANCELADA
+Danfse.render(xml, situacao: :substituida)          # marca d'água SUBSTITUÍDA
+Danfse.render(xml, canhoto: true)                   # com canhoto de recebimento
+Danfse.render_file("nota.xml", "nota.pdf")          # lê e grava arquivos; devolve "nota.pdf"
+```
+
+- `situacao:` aceita `:normal` (padrão), `:cancelada` e `:substituida`; outro valor gera `ArgumentError`. A gem não descobre sozinha se a nota foi cancelada: quem chama informa, a partir dos dados que já tem.
+- Qualquer XML inválido gera `Danfse::InvalidXml`, que herda de `Danfse::Error`.
+
+### Em Rails
+
+Guarde o XML que a Sefin devolve na emissão e gere o PDF na hora do download. Leva cerca de 0,2 s e não precisa guardar arquivo:
+
+```ruby
+class NotasController < ApplicationController
+  def show
+    nota = Nota.find(params[:id])
+    pdf = Danfse.render(nota.xml, situacao: nota.cancelada? ? :cancelada : :normal)
+    send_data pdf, filename: "nfse-#{nota.chave}.pdf", type: "application/pdf"
+  rescue Danfse::Error => error
+    redirect_to nota, alert: error.message
   end
 end
 ```
@@ -48,18 +77,11 @@ bundle exec danfse --cancelada --canhoto nota.xml nota.pdf
 bundle exec danfse --substituida nota.xml nota.pdf
 ```
 
-Sem o segundo caminho, o PDF binário vai para stdout; com ele, o arquivo é gravado sem imprimir o PDF. `--cancelada` e `--substituida` são mutuamente exclusivas; `--canhoto` inclui o canhoto de recebimento. No checkout local, use `bundle exec ruby -Ilib exe/danfse` no lugar de `bundle exec danfse`.
+Sem o segundo caminho, o PDF vai para a saída padrão. `--cancelada` e `--substituida` não podem ser usadas juntas. O status de saída é 0 no sucesso, 1 para XML inválido, falha de geração ou erro de arquivo, e 64 para uso incorreto. Os erros vão para stderr, sem backtrace.
 
-O status de saída é 0 no sucesso, 1 para XML inválido, falha de geração ou erro de arquivo, e 64 para uso incorreto, inclusive ausência de argumentos. Erros vão para stderr sem backtrace; XML inválido produz `XML da NFS-e inválido: …`.
+## Fontes
 
-## Decisões de renderização
-
-- **Fontes:** o PDF incorpora Liberation Sans Regular e Bold. Esta é uma divergência declarada da NT 2.4: Liberation Sans tem a mesma métrica da Arial usada nos títulos; para o conteúdo, substitui a Microsoft Sans Serif por aproximação, sem reproduzir exatamente suas métricas.
-- **Situação:** quem chama informa `situacao:` a partir dos dados que mantém. A gem não deduz cancelamento ou substituição por consulta externa.
-- **Canhoto:** é opcional e vem desativado por padrão.
-- **Municípios:** a tabela local do IBGE permite renderizar sem acesso à rede. Para atualizá-la, execute `bundle exec ruby script/update_municipios` e revise o diff de `data/municipios.csv`.
-
-Quem tiver as fontes originais pode fornecer os caminhos TrueType por papel: `regular:` para o conteúdo e `bold:` para os títulos, respeitando as respectivas licenças:
+A NT pede Arial nos títulos e Microsoft Sans Serif no conteúdo, que não podem ser distribuídas livremente. A gem usa a **Liberation Sans**, que tem as mesmas medidas da Arial; no conteúdo, ela substitui a Microsoft Sans Serif por aproximação. Quem tiver as fontes originais pode passar os arquivos TrueType, respeitando as licenças:
 
 ```ruby
 Danfse.render(xml, fonts: {
@@ -68,20 +90,32 @@ Danfse.render(xml, fonts: {
 })
 ```
 
-Caracteres ausentes nas fontes fornecidas usam Liberation Sans como alternativa; se também estiverem ausentes nela, aparecem como `?`.
+Caracteres que faltarem nessas fontes usam a Liberation Sans; se faltarem nela também, aparecem como `?`.
 
-## Licenças e origem dos dados
+## Contribuindo
 
-| Item | Licença ou condição de uso | Origem |
+Pull requests são bem-vindos, principalmente com XMLs de casos que ainda não estão cobertos (sem dados reais de pessoas: troque nomes e documentos).
+
+```sh
+bundle install
+bundle exec rake test             # testes
+bundle exec rake render_fixtures  # gera em tmp/ o PDF de cada fixture, para conferir a olho
+```
+
+Inclua um teste que reproduza a mudança e confira os PDFs afetados. A tabela de municípios do IBGE é local, para a gem funcionar sem rede; para atualizá-la, rode `bundle exec ruby script/update_municipios` e revise o diff de `data/municipios.csv`.
+
+## Licenças
+
+O código é [MIT](LICENSE). Os arquivos de terceiros que vão junto mantêm as condições deles:
+
+| Item | Condição de uso | Origem |
 | --- | --- | --- |
-| Código da gem | MIT, conforme [LICENSE](LICENSE) | Este projeto |
-| Liberation Sans Regular e Bold | SIL OFL 1.1; nome mantido e licença distribuída em [OFL.txt](assets/fonts/OFL.txt) | [Liberation Fonts 2.1.5](https://github.com/liberationfonts/liberation-fonts/files/7261482/liberation-fonts-ttf-2.1.5.tar.gz) |
-| Logomarca da NFS-e | Logomarca oficial do gov.br; uso exigido pela NT 2.4.3 | [Logo horizontal da NFS-e](https://www.gov.br/nfse/pt-br/biblioteca/documentacao-tecnica/logos-da-nfs-e/Logo%20-%20NFS-e%20-%20Horizontal.png/view) |
-| Tabela de municípios | Dado público do IBGE | [API de localidades v1 do IBGE](https://servicodados.ibge.gov.br/api/v1/localidades/municipios) |
+| Liberation Sans Regular e Bold | SIL OFL 1.1 ([OFL.txt](assets/fonts/OFL.txt)) | [Liberation Fonts 2.1.5](https://github.com/liberationfonts/liberation-fonts/files/7261482/liberation-fonts-ttf-2.1.5.tar.gz) |
+| Logomarca da NFS-e | Logomarca oficial do gov.br, de uso exigido pela NT 2.4.3 | [gov.br/nfse](https://www.gov.br/nfse/pt-br/biblioteca/documentacao-tecnica/logos-da-nfs-e/Logo%20-%20NFS-e%20-%20Horizontal.png/view) |
+| Tabela de municípios | Dado público do IBGE | [API de localidades do IBGE](https://servicodados.ibge.gov.br/api/v1/localidades/municipios) |
 
-Os assets e os dados não são licenciados sob MIT pela gem. A licença MIT se aplica ao código; cada item acima conserva suas condições próprias.
-
-As fontes e a logo foram obtidas sem alteração em 20/10/2026. O CSV foi gerado nessa data por `script/update_municipios`, com 5.571 municípios. A logo e a base do IBGE não possuem versão individual informada na origem; os hashes SHA256 identificam as cópias distribuídas:
+<details>
+<summary>Hashes SHA256 das cópias distribuídas (obtidas sem alteração em 20/10/2026)</summary>
 
 | Arquivo | SHA256 |
 | --- | --- |
@@ -91,13 +125,5 @@ As fontes e a logo foram obtidas sem alteração em 20/10/2026. O CSV foi gerado
 | `assets/logo-nfse.png` | `ab57fa34887929a10ee3b9b4d666084ec9b9465e62bbcc3523b99b23ccac1063` |
 | `data/municipios.csv` | `db1d0753899e0a506876711b33758056e1e38ce32cef3eab1f19fad44f3eca24` |
 
-## Contribuição
-
-Instale as dependências com `bundle install` e execute:
-
-```sh
-bundle exec rake test
-bundle exec rake render_fixtures
-```
-
-Os testes verificam a leitura do XML e o conteúdo dos PDFs. `render_fixtures` gera em `tmp/` os PDFs de todas as fixtures e um exemplo cancelado, para inspeção visual. Ao contribuir, inclua um teste que reproduza a mudança e confira os PDFs afetados.
+O CSV de municípios foi gerado por `script/update_municipios`, com 5.571 municípios.
+</details>
