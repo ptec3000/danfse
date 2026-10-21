@@ -15,14 +15,15 @@ module Danfse
       @nfse = nfse
       @situation = situacao
       @receipt = canhoto
+      if fonts && !(fonts.is_a?(Hash) && fonts.key?(:regular) && fonts.key?(:bold))
+        raise ArgumentError, "fonts: precisa das chaves :regular e :bold"
+      end
       @fonts = fonts
       @qr_modules = RQRCode::QRCode.new(nfse.qr_url, level: :m).modules
     end
 
     def render
-      @pdf = Prawn::Document.new(page_size: "A4", margin: 0)
-      register_fonts
-      calculate_heights
+      prepare_layout
       draw_watermark
       draw_frame
       draw_header
@@ -39,9 +40,18 @@ module Danfse
       @pdf.render
     end
 
-    def heights = @heights.dup.freeze
+    def heights
+      prepare_layout unless @heights
+      @heights.dup.freeze
+    end
 
     private
+
+    def prepare_layout
+      @pdf = Prawn::Document.new(page_size: "A4", margin: 0)
+      register_fonts
+      calculate_heights
+    end
 
     def cm(value) = Layout.cm(value)
     def top(value) = @pdf.bounds.top - cm(value)
@@ -63,8 +73,8 @@ module Danfse
     # A custom role font falls back to the bundled face. If neither face has the
     # character, use a visible question mark rather than silently losing data.
     def safe(value, style = :normal)
-      value.to_s.each_char.map do |character|
-        next character if ["\n", "\r", "\t"].include?(character)
+      value.to_s.tr("\t", " ").each_char.map do |character|
+        next character if ["\n", "\r"].include?(character)
 
         key = [style, character]
         @glyphs[key] ||= begin

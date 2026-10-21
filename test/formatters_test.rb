@@ -64,4 +64,15 @@ class FormattersTest < Minitest::Test
       assert_equal "-", Danfse::Formatters.truncar(missing, 7)
     end
   end
+  def test_alphanumeric_cnpj_is_uppercased_and_formatted
+    assert_equal "12.ABC.345/01DE-35", Danfse::Formatters.documento(cnpj: "12ABC34501DE35")
+    assert_equal "12.ABC.345/01DE-35", Danfse::Formatters.documento(cnpj: "12abc34501de35")
+    assert_equal "51.944.463/0001-42", Danfse::Formatters.documento(cnpj: "51944463000142")
+  end
+
+  def test_malformed_dates_raise_invalid_xml
+    assert_raises(Danfse::InvalidXml) { Danfse::Formatters.data("2026-99-40") }
+    assert_raises(Danfse::InvalidXml) { Danfse::Formatters.data_hora("2026-99-40T25:00:00") }
+  end
+
 end

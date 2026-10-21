@@ -60,7 +60,7 @@ module Danfse
 
       @version = doc.root["versao"]
     rescue Nokogiri::XML::SyntaxError => error
-      raise InvalidXml, "XML inválido: #{error.message}"
+      raise InvalidXml, error.message
     end
 
     def chave = text("@Id").delete_prefix("NFS")
@@ -182,6 +182,8 @@ module Danfse
     def mostrar_pis_cofins_proprio?
       date = text("#{DPS}/dCompet")
       !date.nil? && Date.iso8601(date) <= Date.new(2026, 12, 31)
+    rescue ArgumentError => error
+      raise InvalidXml, "Competência inválida: #{error.message}"
     end
 
     def cst_cclasstrib

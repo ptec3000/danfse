@@ -9,7 +9,7 @@ module Danfse
 
     def documento(cnpj: nil, cpf: nil, nif: nil)
       unless missing?(cnpj)
-        return cnpj.to_s.sub(/\A(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})\z/, '\1.\2.\3/\4-\5')
+        return cnpj.to_s.upcase.sub(/\A([A-Z0-9]{2})([A-Z0-9]{3})([A-Z0-9]{3})([A-Z0-9]{4})(\d{2})\z/, '\1.\2.\3/\4-\5')
       end
       unless missing?(cpf)
         return cpf.to_s.sub(/\A(\d{3})(\d{3})(\d{3})(\d{2})\z/, '\1.\2.\3-\4')
@@ -28,12 +28,16 @@ module Danfse
       return "-" if missing?(value)
 
       Date.iso8601(value.to_s).strftime("%d/%m/%Y")
+    rescue ArgumentError => error
+      raise InvalidXml, "Data inválida: #{error.message}"
     end
 
     def data_hora(value)
       return "-" if missing?(value)
 
       DateTime.iso8601(value.to_s).strftime("%d/%m/%Y %H:%M:%S")
+    rescue ArgumentError => error
+      raise InvalidXml, "Data e hora inválidas: #{error.message}"
     end
 
     def moeda(value)

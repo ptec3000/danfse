@@ -530,4 +530,28 @@ class NfseTest < Minitest::Test
       end
     end
   end
+  def test_real_rental_customer_and_service
+    n = Danfse::Nfse.new(fixture("real/locacao_homologacao_rtc.xml"))
+    assert_equal "123.456.789-09", n.tomador.documento
+    assert_equal "Cliente Exemplo", n.tomador.nome
+    assert_equal "99.01.01", n.codigo_tributacao
+    assert_equal "1.1102.40.00", n.nbs
+    refute n.issqn_incide?
+    assert_equal "Serviços sem a incidência de ISSQN e ICMS", n.descricao_tributacao
+    assert_equal "R$ 45,00", n.valor_servico
+  end
+
+  def test_derived_rental_uses_real_tax_description
+    n = Danfse::Nfse.new(fixture("locacao_nao_incidencia.xml"))
+    assert_equal "Serviços sem a incidência de ISSQN e ICMS", n.descricao_tributacao
+  end
+
+  def test_malformed_competence_raises_invalid_xml
+    xml = fixture("real/acervo_homologacao_rtc.xml").sub(/<dCompet>.*?<\/dCompet>/, "<dCompet>2026-99-40</dCompet>")
+    n = Danfse::Nfse.new(xml)
+    assert_raises(Danfse::InvalidXml) { n.competencia }
+    assert_raises(Danfse::InvalidXml) { n.mostrar_pis_cofins_proprio? }
+    assert_raises(Danfse::InvalidXml) { Danfse.render(xml) }
+  end
+
 end

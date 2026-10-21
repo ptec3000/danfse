@@ -51,7 +51,9 @@ class CliTest < Minitest::Test
       File.write(source, "<invalid>")
       stdout, stderr, status = run_cli(source, destination)
       assert_equal 1, status.exitstatus
-      assert_match(/XML da NFS-e inválido: .+/, stderr)
+      assert_match(/\AXML da NFS-e inválido: .+/, stderr)
+      refute_includes stderr, "XML inválido:"
+      assert_equal 1, stderr.scan("XML da NFS-e inválido:").length
       assert_empty stdout
       refute File.exist?(destination)
     end

@@ -333,4 +333,41 @@ class DocumentTest < Minitest::Test
     refute_includes drawn, "FINAL SERVIÇO"
   end
 
+  def test_real_rental_pdf_has_customer_and_non_incident_issqn_on_one_page
+    pdf = reader(fixture("real/locacao_homologacao_rtc.xml"))
+    assert_equal 1, pdf.page_count
+    drawn = painted_text(pdf.pages.first)
+    assert_includes drawn, "TRIBUTAÇÃO MUNICIPAL (ISSQN) - OPERAÇÃO NÃO SUJEITA AO ISSQN"
+    assert_includes drawn, "Cliente Exemplo"
+  end
+
+  def test_missing_font_roles_raise_argument_error
+    [{}, {regular: Danfse::FONT_DIR.join("LiberationSans-Regular.ttf")},
+      {bold: Danfse::FONT_DIR.join("LiberationSans-Bold.ttf")},
+      {"regular" => "regular.ttf", "bold" => "bold.ttf"}].each do |fonts|
+      error = assert_raises(ArgumentError) do
+        Danfse.render(fixture("real/acervo_homologacao_rtc.xml"), fonts: fonts)
+      end
+      assert_equal "fonts: precisa das chaves :regular e :bold", error.message
+    end
+  end
+
+  def test_heights_are_available_before_render
+    document = Danfse::Document.new(Danfse::Nfse.new(fixture("real/acervo_homologacao_rtc.xml")))
+    heights = document.heights
+    assert heights.frozen?
+    assert_in_delta Danfse::Layout::BOTTOM, Danfse::Layout::START_Y + heights.values.sum, 0.001
+    pdf = PDF::Reader.new(StringIO.new(document.render))
+    assert_equal 1, pdf.page_count
+    assert_equal heights, document.heights
+  end
+
+  def test_tabs_in_service_text_are_rendered_as_spaces
+    xml = fixture("real/acervo_homologacao_rtc.xml").sub(/<xDescServ>.*?<\/xDescServ>/m,
+      "<xDescServ>Antes&#9;Depois</xDescServ>")
+    drawn = painted_text(reader(xml).pages.first)
+    assert_includes drawn, "Antes Depois"
+    refute_includes drawn, "Antes?Depois"
+  end
+
 end
