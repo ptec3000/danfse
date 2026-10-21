@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 require "pathname"
+require "prawn"
+require "rqrcode"
 require_relative "danfse/version"
 
 module Danfse
