@@ -39,6 +39,8 @@ module Danfse
       @pdf.render
     end
 
+    def heights = @heights.dup.freeze
+
     private
 
     def cm(value) = Layout.cm(value)
@@ -108,9 +110,9 @@ module Danfse
       complementary_min += measured_height(@complementary_text, Layout::WIDTH) unless @complementary_text.empty?
       released = Layout::BASE_HEIGHTS.values.sum - @heights.values.sum
       available = Layout::BASE_HEIGHTS[:complementary] + released
-      # Complementary text can need more than its original block. Reserve its
-      # measured minimum before lending the surplus to the service description.
-      complementary_min = [complementary_min, available].min
+      # Only the base complementary block is guaranteed. Released height goes
+      # first to the service description; any remainder returns to this block.
+      complementary_min = [complementary_min, Layout::BASE_HEIGHTS[:complementary]].min
       spare = available - complementary_min
       base_description = Layout::SERVICE[:descricao_servico][:h]
       needed = Layout::LABEL_HEIGHT + measured_height(@nfse.descricao_servico, Layout::WIDTH)

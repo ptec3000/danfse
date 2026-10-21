@@ -65,7 +65,6 @@ module Danfse
 
     # Offsets reproduce the small row-spacing differences in the table.
     PERSON_ORIGINS = {prestador: 4.34, tomador: 6.92, destinatario: 8.86, intermediario: 10.80}.freeze
-    PERSON_HEIGHTS = {prestador: 2.58, tomador: 1.94, destinatario: 1.94, intermediario: 1.94}.freeze
     PEOPLE = PERSON_ORIGINS.to_h do |role, y|
       third = {prestador: 1.28, tomador: 1.30, destinatario: 1.30, intermediario: 1.29}.fetch(role)
       fields = {
@@ -167,7 +166,6 @@ module Danfse
       intermediario: 1.94, service: 1.69, municipal: 2.59, federal: 1.30,
       ibs: 2.58, totals: 1.37, complementary: 5.83, receipt: 0.67}.freeze
     START_Y = 4.34
-    SERVICE_DESCRIPTION_OFFSET = 1.05
     COMPLEMENTARY_CONTENT_OFFSET = 0.41
     AUTHENTICITY_LEADING = 0
   end

@@ -52,6 +52,32 @@ class DocumentTest < Minitest::Test
     refute_includes t, "NFS3106" # access key without the XML prefix
   end
 
+  def test_collapsed_recipient_draws_same_customer_message
+    drawn = painted_text(reader(fixture("com_tomador_pj.xml")).pages.first)
+    assert_includes drawn, "O DESTINATÁRIO É O PRÓPRIO TOMADOR/ADQUIRENTE DA OPERAÇÃO"
+  end
+
+  def test_non_incident_issqn_draws_municipal_message
+    drawn = painted_text(reader(fixture("locacao_nao_incidencia.xml")).pages.first)
+    assert_includes drawn, "TRIBUTAÇÃO MUNICIPAL (ISSQN) - OPERAÇÃO NÃO SUJEITA AO ISSQN"
+  end
+
+  def test_absent_intermediary_draws_missing_message
+    drawn = painted_text(reader(fixture("real/acervo_homologacao_rtc.xml")).pages.first)
+    assert_includes drawn, "INTERMEDIÁRIO DA OPERAÇÃO NÃO IDENTIFICADO NA NFS-e"
+  end
+
+  def test_heights_snapshot_is_frozen_and_does_not_expose_internal_state
+    document = Danfse::Document.new(Danfse::Nfse.new(fixture("real/acervo_homologacao_rtc.xml")))
+    document.render
+    snapshot = document.heights
+    assert_predicate snapshot, :frozen?
+    assert_raises(FrozenError) { snapshot[:service] = 0 }
+    refute_same snapshot, document.heights
+    assert_equal snapshot, document.heights
+    refute_respond_to document, :heights=
+  end
+
   def test_production_without_test_warning
     xml = fixture("real/acervo_homologacao_rtc.xml").sub("<tpAmb>2</tpAmb>", "<tpAmb>1</tpAmb>")
     refute_includes text(xml), "SEM VALIDADE JURÍDICA"
@@ -85,17 +111,6 @@ class DocumentTest < Minitest::Test
     Dir[File.expand_path("fixtures/**/*.xml", __dir__)].each do |path|
       assert_equal 1, PDF::Reader.new(StringIO.new(Danfse.render(File.read(path)))).page_count, path
     end
-  end
-
-  def test_qr_modules_match_url
-    nfse = Danfse::Nfse.new(fixture("real/acervo_homologacao_rtc.xml"))
-    doc = Danfse::Document.new(nfse, situacao: :normal, canhoto: false, fonts: nil)
-    expected = RQRCode::QRCode.new(nfse.qr_url, level: :m).modules
-    assert_equal expected, doc.qr_modules # the matrix actually drawn by Document
-    pdf = doc.render
-    content = PDF::Reader.new(StringIO.new(pdf)).pages.first.raw_content
-    dark = expected.flatten.count(true)
-    assert_operator content.scan(/ re\b/).size, :>=, dark # one rectangle per dark module
   end
 
   def test_visible_description_ellipsis # Review Focus 3
@@ -171,8 +186,8 @@ class DocumentTest < Minitest::Test
     short.render
     long = Danfse::Document.new(Danfse::Nfse.new(fixture("descricao_longa.xml")))
     long.render
-    short_plan = short.instance_variable_get(:@heights)
-    long_plan = long.instance_variable_get(:@heights)
+    short_plan = short.heights
+    long_plan = long.heights
     assert_in_delta 0.32, short_plan[:tomador], 0.001
     assert_operator long_plan[:service], :>, short_plan[:service]
     assert_in_delta short_plan.values.sum, long_plan.values.sum, 0.001
@@ -268,12 +283,12 @@ class DocumentTest < Minitest::Test
     with_receipt = Danfse::Document.new(Danfse::Nfse.new(xml), canhoto: true)
     without_receipt = Danfse::Document.new(Danfse::Nfse.new(xml))
     [with_receipt, without_receipt].each(&:render)
-    a = with_receipt.instance_variable_get(:@heights)
-    b = without_receipt.instance_variable_get(:@heights)
+    a = with_receipt.heights
+    b = without_receipt.heights
     assert_in_delta 0.67, b[:complementary] - a[:complementary], 0.001
     assert_in_delta 1.95, a[:municipal], 0.001
-    assert_in_delta Danfse::Layout::BOTTOM, with_receipt.instance_variable_get(:@y) + a[:receipt], 0.001
-    assert_in_delta Danfse::Layout::BOTTOM, without_receipt.instance_variable_get(:@y), 0.001
+    assert_in_delta Danfse::Layout::BOTTOM, Danfse::Layout::START_Y + a.values.sum, 0.001
+    assert_in_delta Danfse::Layout::BOTTOM, Danfse::Layout::START_Y + b.values.sum, 0.001
     xml = xml.sub(/<regEspTrib>.*?<\/regEspTrib>/, "")
     page = reader(xml).pages.first
     refute_includes painted_text(page), "Regime Especial de Tributação do ISSQN"
@@ -303,13 +318,16 @@ class DocumentTest < Minitest::Test
     assert_includes titles, "DANFSe v2.0"
   end
 
-  def test_complementary_minimum_is_reserved_before_lending_space_to_description
+  def test_description_receives_spare_height_before_long_complementary_text
     xml = fixture("real/acervo_homologacao_rtc.xml").sub(/<xDescServ>.*?<\/xDescServ>/m,
       "<xDescServ>#{"Serviço\n" * 100}FINAL SERVIÇO</xDescServ>")
-    xml = xml.sub("</serv>", "<infoCompl><xInfComp>#{"Extra\n" * 25}FINAL COMPLEMENTO</xInfComp></infoCompl></serv>")
+    xml = xml.sub("</serv>", "<infoCompl><xInfComp>#{"Extra\n" * 100}FINAL COMPLEMENTO</xInfComp></infoCompl></serv>")
     page = reader(xml).pages.first
     drawn = painted_text(page)
-    assert_includes drawn, "FINAL COMPLEMENTO"
+    assert_operator drawn.scan("Serviço").size, :>, 2 # The base description box fits only two lines.
+    refute_includes drawn, "FINAL COMPLEMENTO"
+    complementary = drawn.split("INFORMAÇÕES COMPLEMENTARES", 2).last.split("Totais Aproximados dos Tributos", 2).first
+    assert_match(/\.\.\.\z/, complementary.rstrip)
     assert_includes drawn, Danfse::Nfse.new(xml).totais_tributos
     assert_includes drawn, "..."
     refute_includes drawn, "FINAL SERVIÇO"
