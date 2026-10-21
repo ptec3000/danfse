@@ -7,7 +7,7 @@ Gera o PDF do DANFSe a partir do XML autorizado da NFS-e Nacional, conforme a NT
 Requer Ruby 3.2 ou superior. No Gemfile:
 
 ```ruby
-gem "danfse", github: "ptec3000/danfse", tag: "v0.1.0"
+gem "danfse", github: "ptec3000/danfse", tag: "v0.1.1"
 ```
 
 Execute `bundle install`.
@@ -25,7 +25,7 @@ Danfse.render_file("nota.xml", "nota.pdf", situacao: :cancelada, canhoto: true)
 # => "nota.pdf"
 ```
 
-As opções são `situacao: :normal`, `canhoto: false` e `fonts: nil`. `situacao:` aceita `:normal`, `:cancelada` e `:substituida`; outro valor gera `ArgumentError`. XML inválido gera `Danfse::InvalidXml`, que herda de `Danfse::Error`.
+As opções são `situacao: :normal`, `canhoto: false` e `fonts: nil`. `situacao:` aceita `:normal`, `:cancelada` e `:substituida`; outro valor gera `ArgumentError`. Qualquer entrada XML inválida gera `Danfse::InvalidXml`, que herda de `Danfse::Error`.
 
 Em Rails, supondo um modelo `Nota` com os anexos Active Storage `xml` e `danfse`, um job pode gerar o PDF a partir do XML guardado:
 
@@ -50,7 +50,7 @@ bundle exec danfse --substituida nota.xml nota.pdf
 
 Sem o segundo caminho, o PDF binário vai para stdout; com ele, o arquivo é gravado sem imprimir o PDF. `--cancelada` e `--substituida` são mutuamente exclusivas; `--canhoto` inclui o canhoto de recebimento. No checkout local, use `bundle exec ruby -Ilib exe/danfse` no lugar de `bundle exec danfse`.
 
-O status de saída é 0 no sucesso, 1 para XML inválido ou erro de arquivo, e 64 para uso incorreto, inclusive ausência de argumentos. Erros vão para stderr; XML inválido produz `XML da NFS-e inválido: …`.
+O status de saída é 0 no sucesso, 1 para XML inválido, falha de geração ou erro de arquivo, e 64 para uso incorreto, inclusive ausência de argumentos. Erros vão para stderr sem backtrace; XML inválido produz `XML da NFS-e inválido: …`.
 
 ## Decisões de renderização
 
