@@ -199,7 +199,7 @@ module Danfse
         @pdf.fill_color("000000")
       end
       single_line_box(@nfse.municipio_cabecalho, fields[:municipio_cabecalho],
-        size: Layout::MUNICIPALITY_SIZE, min_font_size: Layout::HEADER_MIN_SIZE) if @nfse.municipio_cabecalho
+        size: Layout::MUNICIPALITY_SIZE, min_font_size: Layout::MUNICIPALITY_MIN_SIZE) if @nfse.municipio_cabecalho
       single_line_box(@nfse.ambiente_gerador, fields[:ambiente_gerador],
         size: Layout::ENVIRONMENT_SIZE, min_font_size: Layout::HEADER_MIN_SIZE, vertical_inset: 0)
       single_line_box(@nfse.tipo_ambiente, fields[:tipo_ambiente],

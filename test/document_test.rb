@@ -123,12 +123,23 @@ class DocumentTest < Minitest::Test
 
     assert_equal 3, header_runs.size
     assert_includes municipality_run.text, "..."
-    assert_equal 6, municipality_run.font_size
+    assert_equal 8, municipality_run.font_size
     assert_equal nfse.ambiente_gerador, environment_run.text
     assert_operator environment_run.font_size, :<, Danfse::Layout::ENVIRONMENT_SIZE
     assert_operator environment_run.font_size, :>=, 6
     assert_equal nfse.tipo_ambiente, type_run.text
     assert_equal 3, header_runs.map(&:y).uniq.size
+  end
+
+  def test_municipality_keeps_eight_point_type_and_truncates_when_needed
+    xml = fixture("real/acervo_homologacao_rtc.xml").sub(
+      "<xLocEmi>Belo Horizonte</xLocEmi>", "<xLocEmi>São José do Vale do Rio Preto</xLocEmi>")
+      .sub("<UF>MG</UF>", "<UF>RJ</UF>")
+    runs = reader(xml).pages.first.runs.select { |run| run.text.start_with?("Município:") }
+
+    assert_equal 1, runs.size
+    assert_match(/\AMunicípio: São José do Vale do Rio\.\.\.\z/, runs.first.text)
+    assert_equal 8, runs.first.font_size
   end
 
   def test_municipal_tax_description_has_visible_ellipsis_when_its_box_overflows
