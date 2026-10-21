@@ -35,6 +35,56 @@ class DocumentTest < Minitest::Test
   def reader(xml, **opts) = PDF::Reader.new(StringIO.new(Danfse.render(xml, **opts)))
   def text(xml, **opts) = reader(xml, **opts).pages.map(&:text).join("\n")
 
+  def test_sefin_typography_is_painted_at_readable_sizes
+    page = reader(fixture("com_tomador_pf_destinatario_intermediario.xml"), canhoto: true).pages.first
+    runs = page.runs
+    {"DANFSe v2.0" => 9.5, "CNPJ / CPF / NIF" => 7,
+     "CHAVE DE ACESSO DA NFS-E" => 7.5, "SERVIÇO PRESTADO" => 8.5, "Descrição do Serviço" => 8}.each do |label, size|
+      matching = runs.select { |run| run.text == label }
+      assert matching.any? { |run| (run.font_size - size).abs < 0.01 }, label
+    end
+    assert runs.any? { |run| run.text.include?("Pessoa") && (run.font_size - 8).abs < 0.01 }
+  end
+
+  def test_collapsed_messages_are_regular_and_centered
+    page = reader(fixture("locacao_nao_incidencia.xml")).pages.first
+    receiver = PaintedTextReceiver.new
+    page.walk(receiver)
+    regular = receiver.font_texts.find { |name, _| name.to_s.end_with?("LiberationSans") }.last
+    assert_includes regular, Danfse::Layout::NO_ISSQN
+    runs = page.runs(merge: true).select { |run| run.text.include?("OPERAÇÃO NÃO SUJEITA") }
+    assert_equal 1, runs.size
+    run = runs.first
+    assert_in_delta page.attributes[:MediaBox][2] / 2, run.x + run.width / 2, 2
+  end
+
+  def test_collapsed_bands_have_no_full_width_shading
+    page = reader(fixture("locacao_nao_incidencia.xml")).pages.first
+    rectangles = page.raw_content.scan(/(-?[\d.]+) (-?[\d.]+) (-?[\d.]+) (-?[\d.]+) re/)
+    full_width = rectangles.select { |rectangle| (rectangle[2].to_f - Danfse::Layout.cm(Danfse::Layout::WIDTH)).abs < 0.00001 }
+    assert_equal 1, full_width.size # Only the header background spans all columns.
+    assert_in_delta Danfse::Layout.cm(Danfse::Layout::HEADER[:background][:h]), full_width.first[3].to_f.abs, 0.00001
+  end
+
+  def test_complementary_totals_have_a_blank_line_before_them
+    page = reader(fixture("real/locacao_homologacao_rtc.xml")).pages.first
+    runs = page.runs
+    item = runs.find { |run| run.text.include?("Total Simples Nacional:") }
+    totals = runs.find { |run| run.text.include?("Totais Aproximados dos Tributos") }
+    assert_in_delta 8, item.font_size, 0.01
+    assert_in_delta 8, totals.font_size, 0.01
+    assert_operator item.y - totals.y, :>=, 18
+  end
+
+  def test_identification_and_header_values_remain_complete_at_larger_sizes
+    xml = fixture("com_tomador_pf_destinatario_intermediario.xml")
+    nfse = Danfse::Nfse.new(xml)
+    drawn = painted_text(reader(xml, canhoto: true).pages.first).gsub(/\s+/, "")
+    (Danfse::Layout::IDENTIFICATION.keys + %i[ambiente_gerador tipo_ambiente]).each do |name|
+      assert_includes drawn, nfse.public_send(name).to_s.gsub(/\s+/, "")
+    end
+  end
+
   def test_a4_single_page
     r = reader(fixture("real/acervo_homologacao_rtc.xml"))
     assert_equal 1, r.page_count
@@ -221,7 +271,7 @@ class DocumentTest < Minitest::Test
   def test_long_short_fields_keep_their_ellipsis_and_all_labels_are_painted
     page = reader(fixture("com_tomador_pf_destinatario_intermediario.xml"), canhoto: true).pages.first
     drawn = painted_text(page)
-    assert_includes drawn, "Empresa de ..."
+    assert_includes drawn.gsub(/\s+/, ""), "Empresa de ...".gsub(/\s+/, "")
     [Danfse::Layout::IDENTIFICATION, *Danfse::Layout::PEOPLE.values,
       Danfse::Layout::SERVICE, Danfse::Layout::FEDERAL, Danfse::Layout::IBS,
       Danfse::Layout::TOTALS, Danfse::Layout::RECEIPT].each do |fields|
@@ -285,8 +335,8 @@ class DocumentTest < Minitest::Test
     [with_receipt, without_receipt].each(&:render)
     a = with_receipt.heights
     b = without_receipt.heights
-    assert_in_delta 0.67, b[:complementary] - a[:complementary], 0.001
-    assert_in_delta 1.95, a[:municipal], 0.001
+    assert_in_delta 0.80, b[:complementary] - a[:complementary], 0.001
+    assert_in_delta 2.42, a[:municipal], 0.001
     assert_in_delta Danfse::Layout::BOTTOM, Danfse::Layout::START_Y + a.values.sum, 0.001
     assert_in_delta Danfse::Layout::BOTTOM, Danfse::Layout::START_Y + b.values.sum, 0.001
     xml = xml.sub(/<regEspTrib>.*?<\/regEspTrib>/, "")
@@ -297,7 +347,7 @@ class DocumentTest < Minitest::Test
 
   def test_block_titles_have_the_annex_field_background
     page = reader(fixture("real/acervo_homologacao_rtc.xml")).pages.first
-    field = Danfse::Layout::PEOPLE[:prestador][:title]
+    field = Danfse::Layout::PEOPLE[:prestador][:title].merge(y: Danfse::Layout::START_Y, h: Danfse::Layout::TITLE_HEIGHT)
     expected = [Danfse::Layout.cm(field[:x]),
       page.attributes[:MediaBox][3] - Danfse::Layout.cm(field[:y] + field[:h]),
       Danfse::Layout.cm(field[:w]), Danfse::Layout.cm(field[:h])]

@@ -11,12 +11,29 @@ module Danfse
     BORDER = 0.15
     BOTTOM = 28.77
     COLLAPSED = 0.32
-    LABEL_HEIGHT = 0.32
-    INSET = 0.025
-    FONT_SIZE = 7
-    LABEL_SIZE = 6
-    TITLE_SIZE = 7
-    HEADER_SIZE = 9
+    LABEL_HEIGHT = 0.40
+    SERVICE_LABEL_SIZE = 8
+    INSET = 0.10
+    VERTICAL_INSET = 0.04
+    VALUE_GAP = 1.2 / cm(1)
+    TITLE_HEIGHT = 0.63
+    TITLE_MIN_SIZE = 7
+    LABEL_MIN_SIZE = 6
+    TITLE_TEXT_HEIGHT = 0.42
+    LABEL_FIT_RATIO = 0.99
+    TAX_GAP = 0.35
+    IDENTIFICATION_SIZE = 7.5
+    MUNICIPALITY_SIZE = 9
+    ENVIRONMENT_SIZE = 7
+    AUTHENTICITY_SIZE = 6
+    COLLAPSED_SIZE = 8
+    SHADE_COLOR = "F2F2F2"
+    DIVIDER_WIDTH = 0.5
+    FRAME_WIDTH = 1
+    FONT_SIZE = 8
+    LABEL_SIZE = 7
+    TITLE_SIZE = 8.5
+    HEADER_SIZE = 9.5
     WATERMARK_SIZE = 60
     WATERMARK_ANGLE = 45
     WATERMARK_CENTER = [10.5, 14.85].freeze
@@ -26,19 +43,31 @@ module Danfse
       {label: label, h: h, w: w, x: x, y: y}.freeze
     end
 
+    # Rows keep Annex I's columns and order. Taller rows accommodate wrapped
+    # labels at the larger Sefin-style sizes, without reducing the value font.
+    def self.rows(fields, heights)
+      origins = fields.values.map { |field| field[:y] }.uniq.sort
+      positions = origins.zip(heights).to_h
+      fields.transform_values do |field|
+        index = origins.index(field[:y])
+        field.merge(y: origins.first + heights.take(index).sum,
+          h: positions.fetch(field[:y])).freeze
+      end.freeze
+    end
+
     HEADER = {
       background: field(nil, 0.30, 0.30, 20.40, 1.16),
       logo: field(nil, 0.49, 0.44, 4.00, 0.85),
       title: field("DANFSe v2.0\nDocumento Auxiliar da NFS-e", 5.41, 0.30, 10.19, 0.75),
       warning: field("NFS-e SEM VALIDADE JURÍDICA", 5.41, 1.05, 10.19, 0.40),
       municipio_cabecalho: field(nil, 15.62, 0.30, 5.09, 0.64),
-      ambiente_gerador: field(nil, 15.62, 0.97, 5.09, 0.24),
-      tipo_ambiente: field(nil, 15.62, 1.22, 5.09, 0.24),
+      ambiente_gerador: field(nil, 15.62, 0.64, 5.09, 0.57),
+      tipo_ambiente: field(nil, 15.62, 1.18, 5.09, 0.30),
       qr: field(nil, 17.48, 1.67, 1.52, 1.52),
-      authenticity: field(nil, 15.80, 3.36, 4.72, 0.75),
+      authenticity: field(nil, 15.80, 3.36, 4.87, 0.80),
     }.freeze
 
-    IDENTIFICATION = {
+    IDENTIFICATION_BASE = {
       chave: field("CHAVE DE ACESSO DA NFS-E", 0.30, 1.48, 15.30, 0.77),
       numero: field("NÚMERO DA NFS-E", 0.30, 2.27, 5.09, 0.67),
       competencia: field("COMPETÊNCIA DA NFS-E", 5.41, 2.27, 5.09, 0.67),
@@ -50,6 +79,16 @@ module Danfse
       situacao_nfse: field("SITUAÇÃO DA NFS-e", 5.41, 3.65, 5.09, 0.67),
       finalidade: field("FINALIDADE", 10.51, 3.65, 5.09, 0.67),
     }.freeze
+
+    # Identification values retain their own line at 8 pt.
+    IDENTIFICATION_ROW = 0.75
+    IDENTIFICATION = IDENTIFICATION_BASE.transform_values do |field|
+      shift = if field[:y] >= 3.65 then 0.16
+      elsif field[:y] >= 2.96 then 0.08
+      else 0
+      end
+      field.merge(y: field[:y] + shift, h: [field[:h], IDENTIFICATION_ROW].max).freeze
+    end.freeze
 
     PERSON_TITLES = {
       prestador: "PRESTADOR / FORNECEDOR", tomador: "TOMADOR / ADQUIRENTE",
@@ -84,18 +123,18 @@ module Danfse
         # Annex I puts this in column 2; the table puts it in column 3.
         fields[:prestador_regime_sn] = field("Regime de Apuração Tributária pelo SN", 5.41, 6.28, 15.29)
       end
-      [role, fields.freeze]
+      [role, rows(fields, role == :prestador ? [0.70, 0.70, 0.70, 1.30] : [0.70, 0.70, 0.70])]
     end.freeze
 
     SERVICE = {
-      title: field("SERVIÇO PRESTADO", 0.30, 12.74),
-      codigo_tributacao: field("Código de Tributação Nacional / Municipal", 5.41, 12.74),
-      nbs: field("Código da NBS", 10.51, 12.74),
-      local_prestacao: field("Local da Prestação / Sigla UF / País", 15.62, 12.74),
-      descricao_tributacao: field(nil, 0.30, 13.39, 20.40, 0.38),
-      descricao_servico: field("Descrição do Serviço", 0.30, 13.79, 20.40, 0.64),
+      title: field("SERVIÇO PRESTADO", 0.30, 12.74, 5.09, 0.95),
+      codigo_tributacao: field("Código de Tributação Nacional / Municipal", 5.41, 12.74, 5.09, 0.95),
+      nbs: field("Código da NBS", 10.51, 12.74, 5.09, 0.95),
+      local_prestacao: field("Local da Prestação / Sigla UF / País", 15.62, 12.74, 5.09, 0.95),
+      descricao_tributacao: field(nil, 0.30, 13.69, 20.40, 0.45),
+      descricao_servico: field("Descrição do Serviço", 0.30, 14.04, 20.40, 0.80),
     }.freeze
-    MUNICIPAL = {
+    MUNICIPAL = rows({
       title: field("TRIBUTAÇÃO MUNICIPAL (ISSQN)", 0.30, 14.43),
       tributacao_issqn: field("Tipo de Tributação do ISSQN", 5.41, 14.43),
       local_incidencia_issqn: field("Município / Sigla UF / País de Incidência do ISSQN", 10.51, 14.43, 10.19),
@@ -111,13 +150,13 @@ module Danfse
       aliquota_aplicada: field("Alíquota Aplicada", 5.41, 16.37),
       retencao_issqn: field("Retenção do ISSQN", 10.51, 16.37),
       issqn_apurado: field("ISSQN Apurado", 15.62, 16.37),
-    }.freeze
+    }, [0.75, 0.92, 0.75, 0.75])
     REGIME_FIELDS = %i[regime_especial tipo_imunidade suspensao processo_suspensao].freeze
     BENEFIT_FIELDS = %i[beneficio_municipal calculo_bm deducoes desconto_incondicionado].freeze
-    REGIME_HEIGHT = 0.65
-    BENEFIT_HEIGHT = 0.64
-    FEDERAL_OPTIONAL_HEIGHT = 0.65
-    FEDERAL = {
+    REGIME_HEIGHT = 0.92
+    BENEFIT_HEIGHT = 0.75
+    FEDERAL_OPTIONAL_HEIGHT = 0.80
+    FEDERAL = rows({
       title: field("TRIBUTAÇÃO FEDERAL (EXCETO CBS)", 0.30, 17.02),
       irrf: field("IRRF", 5.41, 17.02),
       cp_retida: field("Contribuição Previdenciária - Retida", 10.51, 17.02),
@@ -125,8 +164,8 @@ module Danfse
       pis_proprio: field("PIS - Débito Apuração Própria", 0.30, 17.67),
       cofins_proprio: field("COFINS - Débito Apuração Própria", 5.41, 17.67),
       descricao_contribuicoes_retidas: field("Descrição Contrib. Sociais – Retidas", 10.51, 17.67, 10.19),
-    }.freeze
-    IBS = {
+    }, [0.80, 0.80])
+    IBS = rows({
       title: field("TRIBUTAÇÃO IBS / CBS", 0.30, 18.32),
       cst_cclasstrib: field("CST / cClassTrib", 5.41, 18.32),
       indicador_operacao: field("Indicador de Operação / Código IBGE Incidência / Município Incidência / Sigla UF", 10.51, 18.32, 10.19),
@@ -142,8 +181,8 @@ module Danfse
       aliquota_cbs: field("Alíquota - CBS", 5.41, 20.26),
       aliq_efetiva_cbs: field("Alíquota Efetiva – CBS", 10.51, 20.26),
       valor_cbs: field("Valor Total Apurado – CBS", 15.62, 20.26),
-    }.freeze
-    TOTALS = {
+    }, [0.80, 0.95, 0.75, 0.75])
+    TOTALS = rows({
       title: field("VALOR TOTAL DA NFS-E", 0.30, 20.90, 5.09, 0.67),
       valor_servico: field("VALOR DA OPERAÇÃO / SERVIÇO", 5.41, 20.90, 5.09, 0.67),
       desconto_incondicionado_total: field("Desconto Incondicionado", 10.51, 20.90, 5.09, 0.67),
@@ -152,21 +191,21 @@ module Danfse
       valor_liquido: field("VALOR LÍQUIDO DA NFS-e", 5.41, 21.59, 5.09, 0.67),
       total_ibscbs: field("Total do IBS/CBS", 10.51, 21.59, 5.09, 0.67),
       valor_liquido_ibscbs: field("VALOR LÍQUIDO DA NFS-e + IBS/CBS", 15.62, 21.59, 5.09, 0.67),
-    }.freeze
+    }, [0.75, 0.92])
     COMPLEMENTARY = {
-      title: field("INFORMAÇÕES COMPLEMENTARES", 0.30, 22.27, 20.40, 0.39),
-      content: field(nil, 0.30, 22.68, 20.40, 5.42),
+      title: field("INFORMAÇÕES COMPLEMENTARES", 0.30, 22.27, 5.09, 0.70),
+      content: field(nil, 0.30, 22.99, 20.40, 1.17),
     }.freeze
-    RECEIPT = {
+    RECEIPT = rows({
       date: field("DATA CIENTIFICAÇÃO:", 0.30, 28.10, 5.09, 0.67),
       signature: field("IDENTIFICAÇÃO E ASSINATURA", 5.41, 28.10, 5.09, 0.67),
       canhoto_numero_chave: field("Nº NFS-e / CHAVE NFS-e", 10.51, 28.10, 10.19, 0.67),
-    }.freeze
-    BASE_HEIGHTS = {prestador: 2.58, tomador: 1.94, destinatario: 1.94,
-      intermediario: 1.94, service: 1.69, municipal: 2.59, federal: 1.30,
-      ibs: 2.58, totals: 1.37, complementary: 5.83, receipt: 0.67}.freeze
-    START_Y = 4.34
-    COMPLEMENTARY_CONTENT_OFFSET = 0.41
+    }, [0.80])
+    START_Y = 4.58
+    BASE_HEIGHTS = {prestador: 3.40, tomador: 2.10, destinatario: 2.10,
+      intermediario: 2.10, service: 2.10, municipal: 3.17, federal: 1.60,
+      ibs: 3.25, totals: 1.67, complementary: 1.90, receipt: 0.80}.freeze
+    COMPLEMENTARY_CONTENT_OFFSET = 0.72
     AUTHENTICITY_LEADING = 0
   end
 end

@@ -84,9 +84,9 @@ module Danfse
       end.join
     end
 
-    def text_options(field, size: Layout::FONT_SIZE, style: :normal, inset: Layout::INSET, **options)
-      {at: [cm(field[:x] + inset), top(field[:y] + inset)],
-       width: cm(field[:w] - 2 * inset), height: cm(field[:h] - 2 * inset),
+    def text_options(field, size: Layout::FONT_SIZE, style: :normal, inset: Layout::INSET, vertical_inset: Layout::VERTICAL_INSET, **options)
+      {at: [cm(field[:x] + inset), top(field[:y] + vertical_inset)],
+       width: cm(field[:w] - 2 * inset), height: cm(field[:h] - 2 * vertical_inset),
        size: size, style: style, overflow: :truncate,
        fallback_fonts: ["BundledLiberation"]}.merge(options)
     end
@@ -97,7 +97,7 @@ module Danfse
 
     def measured_height(text, width)
       @pdf.height_of(safe(text), width: cm(width - 2 * Layout::INSET),
-        size: Layout::FONT_SIZE, fallback_fonts: ["BundledLiberation"]) / cm(1) + 2 * Layout::INSET
+        size: Layout::FONT_SIZE, fallback_fonts: ["BundledLiberation"]) / cm(1) + 2 * Layout::VERTICAL_INSET
     end
 
     def calculate_heights
@@ -116,7 +116,7 @@ module Danfse
 
       @complementary_text = @nfse.informacoes_complementares.join(" | ")
       @tax_height = measured_height(@nfse.totais_tributos, Layout::WIDTH)
-      complementary_min = Layout::COMPLEMENTARY_CONTENT_OFFSET + @tax_height
+      complementary_min = Layout::COMPLEMENTARY_CONTENT_OFFSET + Layout::TAX_GAP + @tax_height
       complementary_min += measured_height(@complementary_text, Layout::WIDTH) unless @complementary_text.empty?
       released = Layout::BASE_HEIGHTS.values.sum - @heights.values.sum
       available = Layout::BASE_HEIGHTS[:complementary] + released
@@ -132,18 +132,18 @@ module Danfse
     end
 
     def shade(field)
-      @pdf.fill_color("F2F2F2")
+      @pdf.fill_color(Layout::SHADE_COLOR)
       @pdf.fill_rectangle([cm(field[:x]), top(field[:y])], cm(field[:w]), cm(field[:h]))
       @pdf.fill_color("000000")
     end
 
     def divider(y)
-      @pdf.line_width = 0.5
+      @pdf.line_width = Layout::DIVIDER_WIDTH
       @pdf.stroke_horizontal_line(cm(Layout::LEFT), cm(Layout::LEFT + Layout::WIDTH), at: top(y))
     end
 
     def draw_frame
-      @pdf.line_width = 1
+      @pdf.line_width = Layout::FRAME_WIDTH
       @pdf.stroke_rectangle([cm(Layout::BORDER), top(Layout::BORDER)],
         @pdf.bounds.width - 2 * cm(Layout::BORDER), @pdf.bounds.height - 2 * cm(Layout::BORDER))
     end
@@ -165,15 +165,15 @@ module Danfse
       shade(fields[:background])
       logo = fields[:logo]
       @pdf.image(LOGO_PATH.to_s, at: [cm(logo[:x]), top(logo[:y])], fit: [cm(logo[:w]), cm(logo[:h])])
-      box(fields[:title][:label], fields[:title], size: Layout::HEADER_SIZE, style: :bold, align: :center)
+      box(fields[:title][:label], fields[:title], size: Layout::HEADER_SIZE, style: :bold, align: :center, vertical_inset: 0)
       if @nfse.homologacao?
         @pdf.fill_color("FF0000")
         box(fields[:warning][:label], fields[:warning], size: Layout::HEADER_SIZE, style: :bold, align: :center)
         @pdf.fill_color("000000")
       end
-      box(@nfse.municipio_cabecalho, fields[:municipio_cabecalho], size: 8) if @nfse.municipio_cabecalho
-      box(@nfse.ambiente_gerador, fields[:ambiente_gerador], size: 6, inset: 0)
-      box(@nfse.tipo_ambiente, fields[:tipo_ambiente], size: 6, inset: 0)
+      box(@nfse.municipio_cabecalho, fields[:municipio_cabecalho], size: Layout::MUNICIPALITY_SIZE) if @nfse.municipio_cabecalho
+      box(@nfse.ambiente_gerador, fields[:ambiente_gerador], size: Layout::ENVIRONMENT_SIZE, vertical_inset: 0)
+      box(@nfse.tipo_ambiente, fields[:tipo_ambiente], size: Layout::ENVIRONMENT_SIZE, vertical_inset: 0)
       divider(Layout::IDENTIFICATION[:chave][:y])
     end
 
@@ -192,20 +192,30 @@ module Danfse
         end
       end
       box(Layout::AUTHENTICITY, Layout::HEADER[:authenticity],
-        size: 6, leading: Layout::AUTHENTICITY_LEADING)
+        size: Layout::AUTHENTICITY_SIZE, leading: Layout::AUTHENTICITY_LEADING)
+    end
+
+    def fitted_label_size(field, preferred, minimum)
+      width = @pdf.width_of(safe(field[:label], :bold), size: preferred, style: :bold)
+      available = cm(field[:w] - 2 * Layout::INSET) * Layout::LABEL_FIT_RATIO
+      [[preferred * available / width, preferred].min, minimum].max
     end
 
     def draw_field(field, value, identification: false, title: false)
       if title
-        title_field = field.merge(h: Layout::COLLAPSED)
-        shade(field)
-        box(field[:label], title_field, size: Layout::TITLE_SIZE, style: :bold)
+        title_field = field.merge(h: Layout::TITLE_HEIGHT)
+        shade(title_field)
+        size = fitted_label_size(field, Layout::TITLE_SIZE, Layout::TITLE_MIN_SIZE)
+        box(field[:label], title_field.merge(h: Layout::TITLE_TEXT_HEIGHT), size: size, style: :bold)
         return
       end
       if field[:label]
-        box(field[:label], field.merge(h: Layout::LABEL_HEIGHT),
-          size: identification ? Layout::TITLE_SIZE : Layout::LABEL_SIZE, style: :bold)
-        field = field.merge(y: field[:y] + Layout::LABEL_HEIGHT, h: field[:h] - Layout::LABEL_HEIGHT)
+        size = identification ? Layout::IDENTIFICATION_SIZE : fitted_label_size(field, Layout::LABEL_SIZE, Layout::LABEL_MIN_SIZE)
+        label_height = @pdf.height_of(safe(field[:label], :bold),
+          width: cm(field[:w] - 2 * Layout::INSET), size: size, style: :bold) / cm(1)
+        offset = label_height + Layout::VALUE_GAP
+        box(field[:label], field.merge(h: offset + 2 * Layout::VERTICAL_INSET), size: size, style: :bold)
+        field = field.merge(y: field[:y] + offset, h: field[:h] - offset)
       end
       box(value, field)
     end
@@ -232,8 +242,7 @@ module Danfse
 
     def collapsed(label)
       field = {label: label, x: Layout::LEFT, y: @y, w: Layout::WIDTH, h: Layout::COLLAPSED}
-      shade(field)
-      box(label, field, size: Layout::TITLE_SIZE, style: :bold)
+      box(label, field, size: Layout::COLLAPSED_SIZE, align: :center, valign: :center, vertical_inset: 0)
     end
 
     # Probe the same Prawn box used for painting. Its returned remainder detects
@@ -266,7 +275,7 @@ module Danfse
         field = field.merge(y: field[:y] + offset)
         if name == :descricao_servico
           field = field.merge(h: field[:h] + @heights[:service] - Layout::BASE_HEIGHTS[:service])
-          box(field[:label], field.merge(h: Layout::LABEL_HEIGHT), size: Layout::LABEL_SIZE, style: :bold)
+          box(field[:label], field.merge(h: Layout::LABEL_HEIGHT), size: Layout::SERVICE_LABEL_SIZE, style: :bold)
           long_box(@nfse.descricao_servico, field.merge(y: field[:y] + Layout::LABEL_HEIGHT, h: field[:h] - Layout::LABEL_HEIGHT))
         else
           draw_field(field, name == :title ? nil : @nfse.public_send(name), title: name == :title)
@@ -318,19 +327,19 @@ module Danfse
       title = Layout::COMPLEMENTARY[:title].merge(y: @y)
       draw_field(title, nil, title: true)
       field = Layout::COMPLEMENTARY[:content].merge(y: Layout::COMPLEMENTARY[:content][:y] + offset,
-        h: @heights[:complementary] - Layout::COMPLEMENTARY_CONTENT_OFFSET - @tax_height)
+        h: @heights[:complementary] - Layout::COMPLEMENTARY_CONTENT_OFFSET - Layout::TAX_GAP - @tax_height)
       long_box(@complementary_text, field) unless @complementary_text.empty?
       # Keep the mandatory totals immediately after the measured complementary
       # text, or at the reserved bottom if the text fills its allotted space.
       used = @complementary_text.empty? ? 0 : [measured_height(@complementary_text, field[:w]), field[:h]].min
-      box(@nfse.totais_tributos, field.merge(y: field[:y] + used, h: @tax_height))
+      box(@nfse.totais_tributos, field.merge(y: field[:y] + used + Layout::TAX_GAP, h: @tax_height))
       @y += @heights[:complementary]
     end
 
     def draw_receipt
       Layout::RECEIPT.each do |name, field|
         moved = field.merge(y: field[:y] + @y - Layout::RECEIPT[:date][:y])
-        @pdf.line_width = 0.5
+        @pdf.line_width = Layout::DIVIDER_WIDTH
         @pdf.stroke_rectangle([cm(moved[:x]), top(moved[:y])], cm(moved[:w]), cm(moved[:h]))
         draw_field(moved, name == :canhoto_numero_chave ? @nfse.canhoto_numero_chave : "")
       end
