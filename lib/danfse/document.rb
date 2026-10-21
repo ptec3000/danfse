@@ -95,6 +95,29 @@ module Danfse
       @pdf.text_box(safe(text, options.fetch(:style, :normal)), text_options(field, **options))
     end
 
+    def single_line_box(text, field, size: Layout::FONT_SIZE, min_font_size: Layout::CONTENT_MIN_SIZE, **options)
+      source = safe(text).gsub(/\s+/, " ").strip
+      text_options = text_options(field, size: size, single_line: true,
+        overflow: :shrink_to_fit, min_font_size: min_font_size, **options)
+      remainder = Prawn::Text::Box.new(source, text_options.merge(document: @pdf)).render(dry_run: true)
+      source = ellipsized_line(source, text_options, min_font_size) unless remainder.empty?
+      @pdf.text_box(source, text_options)
+    end
+
+    def ellipsized_line(source, options, min_font_size)
+      visible = source
+      fit_options = options.merge(size: min_font_size, overflow: :truncate)
+      loop do
+        suffix = visible.rstrip.end_with?("...") ? "" : "..."
+        candidate = "#{visible.rstrip}#{suffix}"
+        remainder = Prawn::Text::Box.new(candidate, fit_options.merge(document: @pdf)).render(dry_run: true)
+        return candidate if remainder.empty?
+
+        visible = visible[0...-1]
+        raise Error, "Fonte grande demais para o quadro de texto." if visible.empty?
+      end
+    end
+
     def measured_height(text, width)
       @pdf.height_of(safe(text), width: cm(width - 2 * Layout::INSET),
         size: Layout::FONT_SIZE, fallback_fonts: ["BundledLiberation"]) / cm(1) + 2 * Layout::VERTICAL_INSET
@@ -171,9 +194,12 @@ module Danfse
         box(fields[:warning][:label], fields[:warning], size: Layout::HEADER_SIZE, style: :bold, align: :center)
         @pdf.fill_color("000000")
       end
-      box(@nfse.municipio_cabecalho, fields[:municipio_cabecalho], size: Layout::MUNICIPALITY_SIZE) if @nfse.municipio_cabecalho
-      box(@nfse.ambiente_gerador, fields[:ambiente_gerador], size: Layout::ENVIRONMENT_SIZE, vertical_inset: 0)
-      box(@nfse.tipo_ambiente, fields[:tipo_ambiente], size: Layout::ENVIRONMENT_SIZE, vertical_inset: 0)
+      single_line_box(@nfse.municipio_cabecalho, fields[:municipio_cabecalho],
+        size: Layout::MUNICIPALITY_SIZE, min_font_size: Layout::HEADER_MIN_SIZE) if @nfse.municipio_cabecalho
+      single_line_box(@nfse.ambiente_gerador, fields[:ambiente_gerador],
+        size: Layout::ENVIRONMENT_SIZE, min_font_size: Layout::HEADER_MIN_SIZE, vertical_inset: 0)
+      single_line_box(@nfse.tipo_ambiente, fields[:tipo_ambiente],
+        size: Layout::ENVIRONMENT_SIZE, min_font_size: Layout::HEADER_MIN_SIZE, vertical_inset: 0)
       divider(Layout::IDENTIFICATION[:chave][:y])
     end
 
@@ -201,7 +227,7 @@ module Danfse
       [[preferred * available / width, preferred].min, minimum].max
     end
 
-    def draw_field(field, value, identification: false, title: false)
+    def draw_field(field, value, identification: false, title: false, single_line: true)
       if title
         title_field = field.merge(h: Layout::TITLE_HEIGHT)
         shade(title_field)
@@ -217,7 +243,11 @@ module Danfse
         box(field[:label], field.merge(h: offset + 2 * Layout::VERTICAL_INSET), size: size, style: :bold)
         field = field.merge(y: field[:y] + offset, h: field[:h] - offset)
       end
-      box(value, field)
+      if single_line
+        single_line_box(value, field)
+      else
+        box(value, field)
+      end
     end
 
     def draw_person(role)
@@ -278,7 +308,8 @@ module Danfse
           box(field[:label], field.merge(h: Layout::LABEL_HEIGHT), size: Layout::SERVICE_LABEL_SIZE, style: :bold)
           long_box(@nfse.descricao_servico, field.merge(y: field[:y] + Layout::LABEL_HEIGHT, h: field[:h] - Layout::LABEL_HEIGHT))
         else
-          draw_field(field, name == :title ? nil : @nfse.public_send(name), title: name == :title)
+          draw_field(field, name == :title ? nil : @nfse.public_send(name), title: name == :title,
+            single_line: name != :descricao_tributacao)
         end
       end
       @y += @heights[:service]

@@ -85,6 +85,52 @@ class DocumentTest < Minitest::Test
     end
   end
 
+  def test_provider_simple_national_value_stays_on_one_line_without_growing_its_block
+    xml = fixture("real/acervo_homologacao_rtc.xml")
+    document = Danfse::Document.new(Danfse::Nfse.new(xml))
+    page = PDF::Reader.new(StringIO.new(document.render)).pages.first
+    value_runs = page.runs.select { |run| run.text.include?("Optante") || run.text == "de ..." }
+
+    assert_equal 1, value_runs.size
+    assert_equal "Optante - Microempresa ou Empresa de ...", value_runs.first.text
+    assert_in_delta 7, value_runs.first.font_size, 0.01
+    assert_in_delta Danfse::Layout::BASE_HEIGHTS[:prestador], document.heights[:prestador], 0.001
+  end
+
+  def test_short_field_that_cannot_fit_at_seven_points_is_truncated_on_one_line
+    xml = fixture("com_tomador_pf_destinatario_intermediario.xml").sub(
+      "<xNome>Pessoa Exemplo</xNome>", "<xNome>#{"Nome empresarial muito extenso " * 12}</xNome>")
+    page = reader(xml).pages.first
+    value_runs = page.runs.select { |run| run.text.include?("Nome empresarial muito extenso") }
+
+    assert_equal 1, value_runs.size
+    assert_includes value_runs.first.text, "..."
+    assert_equal 7, value_runs.first.font_size
+  end
+
+  def test_header_metadata_uses_single_lines_and_truncates_long_municipalities
+    municipality = "Município com nome muito extenso " * 12
+    xml = fixture("real/acervo_homologacao_rtc.xml").sub(
+      "<xLocEmi>Belo Horizonte</xLocEmi>", "<xLocEmi>#{municipality}</xLocEmi>")
+    nfse = Danfse::Nfse.new(xml)
+    page = PDF::Reader.new(StringIO.new(Danfse::Document.new(nfse).render)).pages.first
+    header_runs = page.runs.select do |run|
+      run.x > Danfse::Layout.cm(15.5) && run.y > 790
+    end
+    municipality_run = header_runs.find { |run| run.text.include?("Município:") }
+    environment_run = header_runs.find { |run| run.text.include?("Ambiente Gerador:") }
+    type_run = header_runs.find { |run| run.text.include?("Tipo de Ambiente:") }
+
+    assert_equal 3, header_runs.size
+    assert_includes municipality_run.text, "..."
+    assert_equal 6, municipality_run.font_size
+    assert_equal nfse.ambiente_gerador, environment_run.text
+    assert_operator environment_run.font_size, :<, Danfse::Layout::ENVIRONMENT_SIZE
+    assert_operator environment_run.font_size, :>=, 6
+    assert_equal nfse.tipo_ambiente, type_run.text
+    assert_equal 3, header_runs.map(&:y).uniq.size
+  end
+
   def test_a4_single_page
     r = reader(fixture("real/acervo_homologacao_rtc.xml"))
     assert_equal 1, r.page_count
