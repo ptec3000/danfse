@@ -8,7 +8,13 @@ Gem::Specification.new do |spec|
   spec.description = "Converte o XML autorizado da NFS-e Nacional em PDF do DANFSe conforme a NT 008 v1.02. " \
     "Funciona em Ruby, sem Rails e sem binários externos."
   spec.email = ["pedro@acervotecnologia.com.br"]
-  spec.metadata = {"rubygems_mfa_required" => "true"}
+  spec.homepage = "https://github.com/ptec3000/danfse"
+  spec.metadata = {
+    "source_code_uri" => "https://github.com/ptec3000/danfse",
+    "changelog_uri" => "https://github.com/ptec3000/danfse/blob/main/CHANGELOG.md",
+    "bug_tracker_uri" => "https://github.com/ptec3000/danfse/issues",
+    "rubygems_mfa_required" => "true"
+  }
   spec.license = "MIT"
   spec.required_ruby_version = ">= 3.2"
   spec.files = Dir["lib/**/*", "assets/**/*", "data/**/*", "exe/*", "LICENSE", "README.md", "CHANGELOG.md"].select { |path| File.file?(path) }

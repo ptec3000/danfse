@@ -10,7 +10,7 @@ Requer Ruby 3.2 ou superior. No Gemfile:
 gem "danfse", github: "ptec3000/danfse", tag: "v0.1.0"
 ```
 
-Execute `bundle install`. A publicação do repositório e da tag v0.1.0 ainda está pendente; o exemplo passa a funcionar após essa publicação.
+Execute `bundle install`.
 
 ## Uso em Ruby
 
