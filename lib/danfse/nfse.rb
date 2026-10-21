@@ -31,7 +31,6 @@ module Danfse
       valor_ibs_total: "#{IBS_TOTALS}/gIBS/vIBSTot",
       valor_cbs: "#{IBS_TOTALS}/gCBS/vCBS",
       valor_servico: "#{DPS}/valores/vServPrest/vServ",
-      desconto_incondicionado_total: "#{DISCOUNTS}/vDescIncond",
       desconto_condicionado: "#{DISCOUNTS}/vDescCond",
       total_retencoes: "valores/vTotalRet",
       valor_liquido: "valores/vLiq",

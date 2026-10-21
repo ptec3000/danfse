@@ -317,7 +317,7 @@ class NfseTest < Minitest::Test
 
   def test_ibscbs_and_totals
     n = invoice("retencoes")
-    {indicador_operacao: "030101 / 3106200 / Belo Horizonte / MG", exclusoes_reducoes: "R$ 11,30", bc_ibscbs: "R$ 0,96", red_aliquotas: "10,00% / 20,00% / 30,00%", aliquotas_ibs: "0,10% / 0,00%", aliq_efetiva_mun: "0,00%", valor_ibs_mun: "R$ 0,00", aliq_efetiva_uf: "0,10%", valor_ibs_uf: "R$ 0,00", valor_ibs_total: "R$ 0,00", aliquota_cbs: "0,90%", aliq_efetiva_cbs: "0,90%", valor_cbs: "R$ 0,01", valor_servico: "R$ 94,78", desconto_incondicionado_total: "R$ 0,11", desconto_condicionado: "R$ 0,22", total_retencoes: "R$ 18,84", valor_liquido: "R$ 75,61", total_ibscbs: "R$ 0,01", valor_liquido_ibscbs: "R$ 75,62"}.each do |method, expected|
+    {indicador_operacao: "030101 / 3106200 / Belo Horizonte / MG", exclusoes_reducoes: "R$ 11,30", bc_ibscbs: "R$ 0,96", red_aliquotas: "10,00% / 20,00% / 30,00%", aliquotas_ibs: "0,10% / 0,00%", aliq_efetiva_mun: "0,00%", valor_ibs_mun: "R$ 0,00", aliq_efetiva_uf: "0,10%", valor_ibs_uf: "R$ 0,00", valor_ibs_total: "R$ 0,00", aliquota_cbs: "0,90%", aliq_efetiva_cbs: "0,90%", valor_cbs: "R$ 0,01", valor_servico: "R$ 94,78", desconto_incondicionado: "R$ 0,11", desconto_condicionado: "R$ 0,22", total_retencoes: "R$ 18,84", valor_liquido: "R$ 75,61", total_ibscbs: "R$ 0,01", valor_liquido_ibscbs: "R$ 75,62"}.each do |method, expected|
       assert_equal expected, n.public_send(method), method
     end
     assert_equal "R$ 0,04", real.exclusoes_reducoes
