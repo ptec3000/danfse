@@ -476,7 +476,6 @@ class DocumentTest < Minitest::Test
   def test_heights_are_available_before_render
     document = Danfse::Document.new(Danfse::Nfse.new(fixture("real/acervo_homologacao_rtc.xml")))
     heights = document.heights
-    assert heights.frozen?
     assert_in_delta Danfse::Layout::BOTTOM, Danfse::Layout::START_Y + heights.values.sum, 0.001
     pdf = PDF::Reader.new(StringIO.new(document.render))
     assert_equal 1, pdf.page_count

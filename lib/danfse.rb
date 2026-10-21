@@ -18,7 +18,7 @@ module Danfse
   end
 
   def self.render_file(xml_path, pdf_path, **options)
-    File.binwrite(pdf_path, render(File.read(xml_path), **options))
+    File.binwrite(pdf_path, render(File.binread(xml_path), **options))
     pdf_path
   end
 end

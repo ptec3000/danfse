@@ -18,6 +18,6 @@ jobs:
       - name: Verify installed gem outside Bundler
         run: |
           gem build danfse.gemspec
-          gem install --local --no-document ./danfse-*.gem
+          gem install --no-document ./danfse-*.gem
           cd "$(mktemp -d)"
           env -u BUNDLE_GEMFILE -u RUBYOPT -u BUNDLE_PATH ruby -e 'require "danfse"; abort "versão incorreta" unless Danfse::VERSION == "0.1.1"; puts Danfse::VERSION'

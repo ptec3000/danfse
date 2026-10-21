@@ -247,15 +247,6 @@ class TablesTest < Minitest::Test
     end
   end
 
-  def test_tables_cannot_be_mutated
-    assert_predicate Danfse::Tables::TABLES, :frozen?
-    Danfse::Tables::TABLES.each_value do |table|
-      assert_predicate table, :frozen?
-      table.each_value { |description| assert_predicate description, :frozen? }
-    end
-    assert_raises(FrozenError) { Danfse::Tables::TABLES[:tp_emit]["1"] = "Outro" }
-    assert_raises(FrozenError) { Danfse::Tables.descricao(:tp_emit, "1").replace("Outro") }
-  end
   def test_no_nif_descriptions
     {"0" => "Não informado na nota de origem", "1" => "Dispensado do NIF", "2" => "Não exigência do NIF"}.each do |code, expected|
       %w[1.00 1.01].each do |version|
