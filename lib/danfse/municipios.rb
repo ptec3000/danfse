@@ -11,10 +11,6 @@ module Danfse
       "#{entry[0]} / #{entry[1]}" if entry
     end
 
-    def self.nome(codigo)
-      entries[codigo.to_s]&.first
-    end
-
     def self.uf(codigo)
       entries[codigo.to_s]&.last
     end

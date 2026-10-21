@@ -17,7 +17,10 @@ Gem::Specification.new do |spec|
   }
   spec.license = "MIT"
   spec.required_ruby_version = ">= 3.2"
-  spec.files = Dir["lib/**/*", "assets/**/*", "data/**/*", "exe/*", "LICENSE", "README.md", "CHANGELOG.md"].select { |path| File.file?(path) }
+  spec.files = Dir.chdir(__dir__) do
+    Dir["lib/**/*", "assets/**/*", "data/**/*", "exe/*", "LICENSE", "README.md", "CHANGELOG.md"]
+      .select { |path| File.file?(path) }
+  end
   spec.bindir = "exe"
   spec.executables = ["danfse"]
 
