@@ -1,5 +1,9 @@
 # Changelog
 
+## Não lançado
+
+- Passa a exigir Ruby 3.4 ou superior (CI em 3.4 e 4.0).
+
 ## 0.1.1 — correções
 
 - Tratamento de erros de geração na linha de comando, com saída legível e status 1.

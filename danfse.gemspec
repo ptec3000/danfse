@@ -16,7 +16,7 @@ Gem::Specification.new do |spec|
     "rubygems_mfa_required" => "true"
   }
   spec.license = "MIT"
-  spec.required_ruby_version = ">= 3.2"
+  spec.required_ruby_version = ">= 3.4"
   spec.files = Dir.chdir(__dir__) do
     Dir["lib/**/*", "assets/**/*", "data/**/*", "exe/*", "LICENSE", "README.md", "CHANGELOG.md"]
       .select { |path| File.file?(path) }
