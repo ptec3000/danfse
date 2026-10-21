@@ -35,10 +35,13 @@ begin
   if ARGV[1]
     Danfse.render_file(ARGV[0], ARGV[1], **options)
   else
-    $stdout.write(Danfse.render(File.read(ARGV[0]), **options))
+    $stdout.write(Danfse.render(File.binread(ARGV[0]), **options))
   end
 rescue Danfse::InvalidXml => error
   warn "XML da NFS-e inválido: #{error.message}"
+  exit 1
+rescue Danfse::Error, ArgumentError => error
+  warn "Erro ao gerar PDF: #{error.message}"
   exit 1
 rescue SystemCallError => error
   warn "Erro ao acessar arquivo: #{error.message}"

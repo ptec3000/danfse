@@ -11,8 +11,8 @@ class CliTest < Minitest::Test
   XML_PATH = File.expand_path("fixtures/real/acervo_homologacao_rtc.xml", __dir__)
   ROOT = File.expand_path("..", __dir__)
 
-  def run_cli(*arguments)
-    Open3.capture3(RbConfig.ruby, "-Ilib", "exe/danfse", *arguments, chdir: ROOT)
+  def run_cli(*arguments, env: {})
+    Open3.capture3(env, RbConfig.ruby, "-Ilib", "exe/danfse", *arguments, chdir: ROOT)
   end
 
   def pdf_text(bytes)
@@ -110,5 +110,32 @@ class CliTest < Minitest::Test
     assert_equal 1, status.exitstatus
     assert_includes stderr, "Erro ao acessar arquivo:"
     assert_empty stdout
+  end
+
+  def test_rendering_error_exits_without_backtrace
+    assert_render_error("Danfse::Error", "Falha ao gerar PDF")
+  end
+
+  def test_invalid_render_option_exits_without_backtrace
+    assert_render_error("ArgumentError", "Opção inválida")
+  end
+
+  private
+
+  def assert_render_error(error_class, message)
+    Dir.mktmpdir do |directory|
+      preload = File.join(directory, "raise_render_error.rb")
+      File.write(preload, <<~RUBY)
+        require "danfse"
+        def Danfse.render(*)
+          raise #{error_class}, #{message.inspect}
+        end
+      RUBY
+      stdout, stderr, status = run_cli(XML_PATH, env: {"RUBYOPT" => "-r#{preload}"})
+      assert_equal 1, status.exitstatus
+      assert_includes stderr, message
+      refute_includes stderr, "from "
+      assert_empty stdout
+    end
   end
 end
