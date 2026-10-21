@@ -274,16 +274,22 @@ class NfseTest < Minitest::Test
     assert_equal "Imunidade", n.tributacao_issqn
   end
 
-  def test_federal_retention_only_applies_to_code_one
+  def test_federal_retention_follows_each_tax_in_code
     n = invoice("retencoes")
     assert_equal "R$ 4,44", n.irrf
     assert_equal "R$ 5,55", n.cp_retida
     assert_equal "PIS/COFINS Retidos", n.descricao_contribuicoes_retidas
-    %w[0 2 3 4 5 6 7 8 9].each do |code|
+    {"0" => ["-", "R$ 2,22", "R$ 3,33"],
+     "2" => ["R$ 1,11", "R$ 2,22", "R$ 3,33"],
+     "3" => ["R$ 6,66", "R$ 0,00", "R$ 0,00"],
+     "4" => ["R$ 5,55", "R$ 0,00", "R$ 0,00"],
+     "5" => ["R$ 2,22", "R$ 0,00", "R$ 3,33"],
+     "6" => ["R$ 3,33", "R$ 2,22", "R$ 0,00"],
+     "7" => ["R$ 4,44", "R$ 2,22", "R$ 0,00"],
+     "8" => ["R$ 1,11", "R$ 2,22", "R$ 3,33"],
+     "9" => ["R$ 3,33", "R$ 0,00", "R$ 3,33"]}.each do |code, expected|
       n = changed { |doc| doc.at_xpath("//tpRetPisCofins").content = code }
-      assert_equal "R$ 1,11", n.contribuicoes_retidas
-      assert_equal "R$ 2,22", n.pis_proprio
-      assert_equal "R$ 3,33", n.cofins_proprio
+      assert_equal expected, [n.contribuicoes_retidas, n.pis_proprio, n.cofins_proprio], code
     end
     n = changed { |doc| doc.xpath("//tribFed").remove }
     assert_equal "-", n.contribuicoes_retidas
@@ -292,6 +298,19 @@ class NfseTest < Minitest::Test
     assert n.mostrar_pis_cofins_proprio?
     n = changed { |doc| doc.at_xpath("//dCompet").content = "2027-01-01" }
     refute n.mostrar_pis_cofins_proprio?
+  end
+
+  def test_layout_100_keeps_legacy_retention_codes
+    n = changed("leiaute_100") { |doc| doc.at_xpath("//tpRetPisCofins").content = "1" }
+    assert_equal "R$ 0,04", n.contribuicoes_retidas
+    assert_equal "R$ 0,00", n.pis_proprio
+    assert_equal "R$ 0,00", n.cofins_proprio
+    n = changed("leiaute_100") { |doc| doc.at_xpath("//tpRetPisCofins").content = "2" }
+    assert_equal "R$ 0,01", n.pis_proprio
+    assert_equal "R$ 0,03", n.cofins_proprio
+    n = changed("leiaute_100") { |doc| doc.at_xpath("//tpRetPisCofins").content = "3" }
+    assert_equal "R$ 0,01", n.pis_proprio
+    assert_equal "R$ 0,03", n.cofins_proprio
   end
 
   def test_ibscbs_and_totals
@@ -334,8 +353,8 @@ class NfseTest < Minitest::Test
   end
 
   def test_missing_fields_whitespace_and_unknown_status
-    n = Danfse::Nfse.new("<NFSe versao=\"1.01\"><infNFSe Id=\"NFS123\"><nNFSe>   </nNFSe><DPS><infDPS><prest/></infDPS></DPS></infNFSe></NFSe>")
-    %i[numero competencia emissao_nfse emissao_dps finalidade descricao_servico bc_issqn issqn_apurado cst_cclasstrib local_prestacao local_incidencia_issqn indicador_operacao red_aliquotas aliquotas_ibs].each do |method|
+    n = Danfse::Nfse.new("<NFSe versao=\"1.01\"><infNFSe Id=\"NFS#{'1' * 50}\"><nNFSe>1</nNFSe><DPS><infDPS><prest/></infDPS></DPS></infNFSe></NFSe>")
+    %i[competencia emissao_nfse emissao_dps finalidade descricao_servico bc_issqn issqn_apurado cst_cclasstrib local_prestacao local_incidencia_issqn indicador_operacao red_aliquotas aliquotas_ibs].each do |method|
       assert_equal "-", n.public_send(method), method
     end
     assert_equal "-", n.prestador.nome
@@ -345,7 +364,42 @@ class NfseTest < Minitest::Test
     assert_equal "999", n.situacao_nfse
     assert_equal "Licenciamento ou cessão de direito de uso de programas de computação.", n.descricao_tributacao
     n = changed { |doc| doc.at_xpath("//cLocPrestacao").replace("<cPaisPrestacao>US</cPaisPrestacao>") }
-    assert_equal "- / - / US", n.local_prestacao
+    assert_equal "Belo Horizonte / - / US", n.local_prestacao
+  end
+
+  def test_foreign_service_location_uses_invoice_location_name
+    n = changed do |doc|
+      doc.at_xpath("//xLocPrestacao").content = "New York"
+      doc.at_xpath("//cLocPrestacao").replace("<cPaisPrestacao>US</cPaisPrestacao>")
+    end
+    assert_equal "New York / - / US", n.local_prestacao
+  end
+
+  {short: "NFS123", long: "NFS#{'1' * 51}", wrong_prefix: "ABC#{'1' * 50}"}.each do |case_name, id|
+    define_method("test_invoice_rejects_#{case_name}_id") do
+      assert_raises(Danfse::InvalidXml) { changed { |doc| doc.at_xpath("//infNFSe")["Id"] = id } }
+    end
+  end
+
+  def test_invoice_requires_number
+    assert_raises(Danfse::InvalidXml) { changed { |doc| doc.at_xpath("//nNFSe").remove } }
+  end
+
+  def test_invoice_requires_embedded_dps
+    assert_raises(Danfse::InvalidXml) { changed { |doc| doc.at_xpath("//infDPS").remove } }
+  end
+
+  {letters: "abc", comma: "1,50", nan: "NaN", infinity: "Infinity"}.each do |case_name, amount|
+    define_method("test_invoice_rejects_#{case_name}_liquid_amount") do
+      n = changed { |doc| doc.at_xpath("//vLiq").content = amount }
+      assert_match(/Valor inválido em vLiq:/, assert_raises(Danfse::InvalidXml) { n.valor_liquido }.message)
+    end
+
+    define_method("test_invoice_rejects_#{case_name}_sum_amount") do
+      n = changed { |doc| doc.at_xpath("//vPis").content = amount }
+      assert_match(/Valor numérico inválido: #{Regexp.escape(amount)}/,
+        assert_raises(Danfse::InvalidXml) { n.contribuicoes_retidas }.message)
+    end
   end
 
   def test_invalid_xml_missing_or_blank_id_and_malformed_document

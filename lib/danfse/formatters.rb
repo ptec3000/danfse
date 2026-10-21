@@ -78,11 +78,16 @@ module Danfse
     private_class_method :missing?
 
     def decimal_string(value, thousands: false)
-      rounded = BigDecimal(value.to_s).round(2, BigDecimal::ROUND_HALF_UP)
+      decimal = BigDecimal(value.to_s)
+      raise InvalidXml, "Valor numérico inválido: #{value}" unless decimal.finite?
+
+      rounded = decimal.round(2, BigDecimal::ROUND_HALF_UP)
       rounded = rounded.abs if rounded.zero?
       integer, fraction = rounded.to_s("F").split(".", 2)
       integer = integer.gsub(/(\d)(?=(\d{3})+(?!\d))/, '\1.') if thousands
       "#{integer},#{fraction.ljust(2, '0')}"
+    rescue ArgumentError
+      raise InvalidXml, "Valor numérico inválido: #{value}"
     end
     private_class_method :decimal_string
   end

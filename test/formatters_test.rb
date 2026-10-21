@@ -28,6 +28,13 @@ class FormattersTest < Minitest::Test
     assert_equal "1,01%", Danfse::Formatters.percentual("1.005")
   end
 
+  def test_invalid_or_non_finite_decimals_raise_invalid_xml
+    ["abc", "1,50", "NaN", "Infinity", "-Infinity"].each do |value|
+      assert_raises(Danfse::InvalidXml, value) { Danfse::Formatters.moeda(value) }
+      assert_raises(Danfse::InvalidXml, value) { Danfse::Formatters.percentual(value) }
+    end
+  end
+
   def test_datas_preserve_the_xml_local_time
     assert_equal "20/10/2026", Danfse::Formatters.data("2026-10-20")
     assert_equal "20/10/2026 18:55:01", Danfse::Formatters.data_hora("2026-10-20T18:55:01-03:00")

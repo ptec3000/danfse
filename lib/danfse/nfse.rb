@@ -38,7 +38,11 @@ module Danfse
       valor_liquido_ibscbs: "#{IBS_TOTALS}/vTotNF",
     }.freeze
     MONEY_FIELDS.each do |name, path|
-      define_method(name) { Formatters.moeda(text(path)) }
+      define_method(name) do
+        Formatters.moeda(text(path))
+      rescue InvalidXml => error
+        raise InvalidXml, "Valor inválido em #{path.split('/').last}: #{error.message}"
+      end
     end
 
     PERCENT_FIELDS = {
@@ -57,6 +61,8 @@ module Danfse
       doc.remove_namespaces!
       @info = doc.at_xpath("/NFSe/infNFSe")
       raise InvalidXml, "XML sem infNFSe ou Id." unless @info && text("@Id")
+      raise InvalidXml, "Id inválido; esperado NFS e 50 dígitos." unless /\ANFS\d{50}\z/.match?(text("@Id"))
+      raise InvalidXml, "XML sem nNFSe ou DPS/infDPS." unless text("nNFSe") && @info.at_xpath(DPS)
 
       @version = doc.root["versao"]
     rescue Nokogiri::XML::SyntaxError => error
@@ -120,7 +126,7 @@ module Danfse
 
     def local_prestacao
       country = text("#{DPS}/serv/locPrest/cPaisPrestacao")
-      return "- / - / #{country}" if country
+      return join_fields(text("xLocPrestacao"), "-", country) if country
 
       location(text("xLocPrestacao"), text("#{DPS}/serv/locPrest/cLocPrestacao"))
     end
@@ -170,13 +176,17 @@ module Danfse
     end
 
     def contribuicoes_retidas
-      csll = text("#{FEDERAL}/vRetCSLL")
-      amount = pis_cofins_retained? ? sum(csll, text("#{PIS_COFINS}/vPis"), text("#{PIS_COFINS}/vCofins")) : csll
+      taxes = retained_taxes
+      amount = sum(*{
+        csll: text("#{FEDERAL}/vRetCSLL"),
+        pis: text("#{PIS_COFINS}/vPis"),
+        cofins: text("#{PIS_COFINS}/vCofins")
+      }.filter_map { |tax, value| value if taxes.include?(tax) })
       Formatters.moeda(amount)
     end
 
-    def pis_proprio = Formatters.moeda(pis_cofins_retained? ? "0" : text("#{PIS_COFINS}/vPis"))
-    def cofins_proprio = Formatters.moeda(pis_cofins_retained? ? "0" : text("#{PIS_COFINS}/vCofins"))
+    def pis_proprio = Formatters.moeda(retained_taxes.include?(:pis) ? "0" : text("#{PIS_COFINS}/vPis"))
+    def cofins_proprio = Formatters.moeda(retained_taxes.include?(:cofins) ? "0" : text("#{PIS_COFINS}/vCofins"))
     def descricao_contribuicoes_retidas = description(:tp_ret_pis_cofins, text("#{PIS_COFINS}/tpRetPisCofins"))
 
     def mostrar_pis_cofins_proprio?
@@ -289,7 +299,16 @@ module Danfse
       present = values.compact
       return nil if present.empty?
 
-      present.sum(BigDecimal("0")) { |value| BigDecimal(value.to_s) }
+      present.sum(BigDecimal("0")) do |value|
+        begin
+          decimal = BigDecimal(value.to_s)
+          raise InvalidXml, "Valor numérico inválido: #{value}" unless decimal.finite?
+
+          decimal
+        rescue ArgumentError
+          raise InvalidXml, "Valor numérico inválido: #{value}"
+        end
+      end
     end
 
     # Count separators in the NT character budget and reserve the SN total.
@@ -318,7 +337,18 @@ module Danfse
       result
     end
 
-    def pis_cofins_retained? = text("#{PIS_COFINS}/tpRetPisCofins") == "1"
+    # v1.01 enumerates each retained tax; v1.00 codes 1/2 keep their meaning.
+    def retained_taxes
+      code = text("#{PIS_COFINS}/tpRetPisCofins")
+      return code == "1" ? %i[pis cofins csll] : %i[csll] if @version == "1.00"
+
+      {
+        "0" => [], "1" => %i[pis cofins csll], "2" => %i[csll],
+        "3" => %i[pis cofins csll], "4" => %i[pis cofins],
+        "5" => %i[pis], "6" => %i[cofins], "7" => %i[cofins csll],
+        "8" => %i[csll], "9" => %i[pis csll]
+      }.fetch(code, %i[csll])
+    end
 
     def person(node, fallback = nil)
       return nil unless node
